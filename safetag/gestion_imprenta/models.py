@@ -2,7 +2,7 @@ from django.core.exceptions import NON_FIELD_ERRORS, ValidationError
 from django.db import models
 from django.contrib.auth.models import User
 from django.forms import ModelForm
-from django.forms.models import inlineformset_factory
+from django.forms.models import inlineformset_factory, modelformset_factory
 from django.utils.translation import gettext_lazy as _
 import re
 
@@ -168,7 +168,7 @@ class Localidad(models.Model):
     def __str__(self):
         return self.localidad
 
-# TODO Agregar el formulario de DC a los clientes cuando se dan de alta.
+
 class DatoContacto(models.Model):
     USO = (
         ('PERS', 'Personal'),
@@ -219,7 +219,6 @@ class DatoContacto(models.Model):
                 raise ValidationError({'dato_contacto_valor': _('El dato de contacto no tiene los dígitos correctos. Ingrese sin el cero. ')})
 
 
-
 class Proveedor(models.Model):
     TIPO_DOC = (
         ('DNI', 'DNI'),
@@ -234,7 +233,7 @@ class Proveedor(models.Model):
     proveedor_tipo_doc = models.CharField(choices=TIPO_DOC, max_length=10, blank=True, null=True)
     proveedor_nro_doc = models.CharField(max_length=12, blank=True, null=True)
     proveedor_descripcion = models.CharField(max_length=200, blank=True, null=True)
-    nota_1 = models.CharField(max_length=200, blank=True, null=True)
+    nota_1 = models.TextField(blank=True, null=True)
     fecha_carga = models.DateTimeField(auto_now_add=True)
     flg_activo = models.BooleanField(blank=False, null=False)
 
@@ -269,7 +268,7 @@ class Material(models.Model):
     flg_activo = models.BooleanField(blank=False, null=False)
 
     def clean(self):
-        if not self.material.isalpha():
+        if any(p.isdigit() for p in self.material):
             raise ValidationError({'material': _('Sólo se permiten letras')})
 
 
@@ -760,7 +759,63 @@ class LocalidadForm(ModelForm):
             'flg_activo': _('Activo')
         }
 
+
 class DatoContactoForm(ModelForm):
     class Meta:
         model = DatoContacto
-        exclude = ['dato_contacto_id', ]
+        exclude = ['dato_contacto_id', 'cliente_pf', 'cliente_pj', 'proveedor', 'servicio_tecnico', 'fecha_carga']
+        labels = {
+            'flg_activo': _('Activo'),
+            'dato_contacto_valor':_('Dato (email/celular/teléfono'),
+            'tipo_dato_contacto': _('Tipo dato de contacto'),
+            'dato_contacto_interno': _('Interno'),
+            'dato_contacto_uso': _('Uso'),
+            'dato_contacto_horario_contacto': _('Horario de contacto'),
+            'dato_contacto_flg_no_llame': _('Registro No Llame'),
+            'dato_contacto_comentarios': _('Comentarios'),
+        }
+    field_order = ['dato_contacto_uso', 'tipo_dato_contacto', 'dato_contacto_valor', 'dato_contacto_interno',
+                   'dato_contacto_horario_contacto', 'dato_contacto_flg_no_llame', 'dato_contacto_comentarios',
+                   'flg_activo']
+
+
+DatoContactoPfFormAlta = inlineformset_factory(ClientePf, DatoContacto, form=DatoContactoForm, extra=1, can_order=False,
+                                           can_delete=False)
+
+DatoContactoPjFormAlta = inlineformset_factory(ClientePj, DatoContacto, form=DatoContactoForm, extra=1, can_order=False,
+                                           can_delete=False)
+
+
+class ProveedorForm(ModelForm):
+    class Meta:
+        model = Proveedor
+        exclude = ['proveedor_id', 'fecha_carga']
+        labels = {
+            'proveedor_razon_social': _('Razón Social'),
+            'proveedor_tipo_doc': _('Tipo documento'),
+            'proveedor_nro_doc': _('Nro documento'),
+            'proveedor_descripción': _('Descripción'),
+            'nota_1': _('Notas'),
+            'flg_activo': _('Activo')
+        }
+
+
+class MaterialForm(ModelForm):
+    class Meta:
+        model = Material
+        exclude = ['material_id', 'proveedores', 'trabajos', 'fecha_carga']
+        labels = {
+            'material_alto_mm': _('Alto  (mm)'),
+            'material_ancho_mm': _('Ancho (mm)'),
+            'material_costo_dolar': _('Costo (u$s)'),
+            'material_gramaje_grs': _('Gramaje'),
+            'material_demasia_hoja_mm': _('Demasía (mm('),
+            'flg_activo': _('Activo')
+        }
+
+
+ProveedorMaterialFormSet = inlineformset_factory(Proveedor, Material.proveedores.through, form=MaterialForm, extra=1, can_order=False,
+                                           can_delete=False)
+
+MaterialProveedorFormSet = inlineformset_factory(Material, Proveedor, form=MaterialForm)
+

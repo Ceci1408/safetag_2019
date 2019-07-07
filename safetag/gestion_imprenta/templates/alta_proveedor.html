@@ -2,10 +2,10 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Alta Cliente Persona Física</title>
+    <title>Alta Proveedor</title>
 </head>
 <body>
-    <form action="{% url 'alta_cliente_pf' %}" method="post">
+    <form action="{% url 'alta_proveedor' %}" method="post">
         {% csrf_token %}
         <table>
             <thead>
@@ -14,7 +14,7 @@
                 </tr>
             </thead>
             <tbody>
-                {% for f in form_pf.visible_fields %}
+                {% for f in form.visible_fields %}
                 <tr>
                     <td>
                         {{ f.label_tag }}
@@ -32,8 +32,8 @@
                 {% endfor %}
             </tbody>
             <tbody>
-             {{ form_dom.management_form }}
-                {% for form in form_dom %}
+             {{ mat_formset.management_form }}
+                {% for form in mat_formset %}
                     {% for f in form.visible_fields %}
                         <tr>
                             <td>
@@ -52,28 +52,6 @@
                     {% endfor %}
                 {% endfor %}
             </tbody>
-            <tbody>
-             {{ form_dc.management_form }}
-                {% for form in form_dc %}
-                    {% for f in form.visible_fields %}
-                        <tr>
-                            <td>
-                                {{ f.label_tag }}
-                            </td>
-                            <td>
-                                {{ f }}
-                            </td>
-                            <td>
-                                {{ f.errors }}
-                            </td>
-                            <td>
-                                {{ f.help_text }}
-                            </td>
-                        </tr>
-                    {% endfor %}
-                {% endfor %}
-            </tbody>
-
         </table>
     <input type="submit" value="Guardar!">
     </form>
