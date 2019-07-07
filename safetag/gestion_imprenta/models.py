@@ -168,7 +168,7 @@ class Localidad(models.Model):
     def __str__(self):
         return self.localidad
 
-
+# TODO Agregar el formulario de DC a los clientes cuando se dan de alta.
 class DatoContacto(models.Model):
     USO = (
         ('PERS', 'Personal'),
