@@ -2,6 +2,7 @@ from django.core.exceptions import NON_FIELD_ERRORS, ValidationError
 from django.db import models
 from django.contrib.auth.models import User
 from django.forms import ModelForm
+from django import forms
 from django.forms.models import inlineformset_factory, modelformset_factory
 from django.utils.translation import gettext_lazy as _
 import re
@@ -262,7 +263,7 @@ class Material(models.Model):
     material_costo_dolar = models.DecimalField(max_digits=10, decimal_places=3, blank=False, null=False)
     material_gramaje_grs = models.IntegerField(blank=True, null=True)
     material_demasia_hoja_mm = models.DecimalField(max_digits=10, decimal_places=2,  blank=False, null=False)
-    proveedores = models.ManyToManyField(Proveedor)
+    proveedores = models.ManyToManyField(Proveedor, related_name='material')
     trabajos = models.ManyToManyField('TipoTrabajo', through='TipoTrabajoMaterial')
     fecha_carga = models.DateTimeField(auto_now_add=True)
     flg_activo = models.BooleanField(blank=False, null=False)
@@ -284,7 +285,7 @@ class TipoTrabajo(models.Model):
     flg_activo = models.BooleanField(blank=False, null=False)
     medidas = models.ManyToManyField('MedidaEstandar')
     cantidades = models.ManyToManyField('Cantidad', through='TipoTrabajoCantidades')
-    terminaciones = models.ManyToManyField('Terminacion')
+    terminaciones = models.ManyToManyField('Terminacion'),
 
     class Meta:
         constraints = [
@@ -803,19 +804,80 @@ class ProveedorForm(ModelForm):
 class MaterialForm(ModelForm):
     class Meta:
         model = Material
-        exclude = ['material_id', 'proveedores', 'trabajos', 'fecha_carga']
+        exclude = ['material_id', 'fecha_carga']
         labels = {
             'material_alto_mm': _('Alto  (mm)'),
             'material_ancho_mm': _('Ancho (mm)'),
             'material_costo_dolar': _('Costo (u$s)'),
             'material_gramaje_grs': _('Gramaje'),
-            'material_demasia_hoja_mm': _('Demasía (mm('),
+            'material_demasia_hoja_mm': _('Demasía (mm)'),
             'flg_activo': _('Activo')
+        }
+        widgets = {
+            'proveedores': forms.SelectMultiple(),
+            'trabajos': forms.SelectMultiple()
         }
 
 
-ProveedorMaterialFormSet = inlineformset_factory(Proveedor, Material.proveedores.through, form=MaterialForm, extra=1, can_order=False,
-                                           can_delete=False)
+class TipoTrabajoForm(ModelForm):
+    class Meta:
+        model = TipoTrabajo
+        exclude = ['tipo_trabajo_id', 'fecha_carga']
+        labels = {
+            'tipo_trabajo': _('Trabajo'),
+            'tipo_trabajo_autoadhesivo_flg': _('Es autoadhesivo'),
+            'tipo_trabajo_doble_cara_flg': _('Permite impresión doble cara'),
+            'tipo_trabajo_tiempo_aprox_hs': _('Tiempo de realización aprox (Hs)'),
+            'tipo_trabajo_demasia_trabajo_mm': _('Demasía aprox (mm)'),
+            'tipo_trabajo_circular_flg': _('Es circular'),
+            'flg_activo': _('Trabajo activo')
+        }
+        widgets = {
+            'medidas': forms.SelectMultiple(),
+            'cantidades': forms.SelectMultiple(),
+            'terminaciones': forms.SelectMultiple()
+        }
 
-MaterialProveedorFormSet = inlineformset_factory(Material, Proveedor, form=MaterialForm)
 
+class TipoTrabajoMaterialForm(ModelForm):
+    class Meta:
+        model = TipoTrabajoMaterial
+        exclude = ['fecha_carga']
+        labels = {
+            'tipo_trabajo': _('Trabajo'),
+            'flg_activo': _('Relación activa')
+        }
+        widgets = {
+            'tipo_trabajo': forms.Select(),
+            'material': forms.MultipleChoiceField,
+            'terminaciones': forms.MultipleChoiceField()
+        }
+
+
+class MedidaEstandarForm(ModelForm):
+    class Meta:
+        model = MedidaEstandar
+        exclude = ['medida_estandar_id', 'fecha_carga']
+        labels = {
+            'medida_1_cm': _('Medida 1 (cm)'),
+            'medida_2_cm': _('Medida 2 (cm)'),
+            'flg_activo': _('Medida activa')
+        }
+
+
+class CantidadForm(ModelForm):
+    class Meta:
+        model = Cantidad
+        exclude = ['cantidad_id', 'fecha_carga']
+        labels = {
+            'flg_activo': _('Cantidad activa')
+        }
+
+
+class TipoTrabajoCantidadesForm(ModelForm):
+    class Meta:
+        model = TipoTrabajoCantidades
+        exclude = ['fecha_carga']
+        labels = {
+            'flg_activo': _('Cantidad activa')
+        }

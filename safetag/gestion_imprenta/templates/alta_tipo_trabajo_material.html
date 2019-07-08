@@ -2,10 +2,10 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Alta Material</title>
+    <title>Alta tipo trabajo material</title>
 </head>
 <body>
-    <form action="{% url 'alta_material' %}" method="post">
+    <form action="{% url 'alta_tipo_trabajo_material' %}" method="post">
         {% csrf_token %}
         <table>
             <thead>
@@ -31,7 +31,6 @@
                 </tr>
                 {% endfor %}
             </tbody>
-
         </table>
     <input type="submit" value="Guardar!">
     </form>
