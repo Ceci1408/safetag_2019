@@ -7,6 +7,7 @@
 <body>
     <form action="{% url 'alta_medida_estandar' %}" method="post">
         {% csrf_token %}
+        {{ form.non_field_errors }}
         <table>
             <thead>
                 <tr>
@@ -14,7 +15,7 @@
                 </tr>
             </thead>
             <tbody>
-                {% for f in form.visible_fields %}
+                {% for f in form %}
                 <tr>
                     <td>
                         {{ f.label_tag }}

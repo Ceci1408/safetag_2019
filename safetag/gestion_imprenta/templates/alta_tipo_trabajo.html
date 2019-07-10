@@ -32,8 +32,8 @@
                 {% endfor %}
             </tbody>
             <tbody>
-             {{ mat_formset.management_form }}
-                {% for form in mat_formset %}
+             {{ formset_cant.management_form }}
+                {% for form in formset_cant %}
                     {% for f in form.visible_fields %}
                         <tr>
                             <td>

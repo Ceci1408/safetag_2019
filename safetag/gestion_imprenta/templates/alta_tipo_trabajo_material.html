@@ -5,8 +5,9 @@
     <title>Alta tipo trabajo material</title>
 </head>
 <body>
-    <form action="{% url 'alta_tipo_trabajo_material' %}" method="post">
+    <form action="{% url 'alta_tipo_trabajo_material pk=tipo_trabajo_pk' %}" method="post">
         {% csrf_token %}
+        {{ form.non_field_errors }}
         <table>
             <thead>
                 <tr>

@@ -1,10 +1,9 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Alta Proveedor</title>
-</head>
-<body>
+{% extends 'base.html' %}
+{% block title %}
+    Alta Proveedor
+{% endblock %}
+
+{% block content %}
     <form action="{% url 'alta_proveedor' %}" method="post">
         {% csrf_token %}
         <table>
@@ -30,10 +29,9 @@
                     </td>
                 </tr>
                 {% endfor %}
-            </tbody>
-            <tbody>
-             {{ mat_formset.management_form }}
-                {% for form in mat_formset %}
+
+             {{ form_dc.management_form }}
+                {% for form in form_dc %}
                     {% for f in form.visible_fields %}
                         <tr>
                             <td>
@@ -50,10 +48,20 @@
                             </td>
                         </tr>
                     {% endfor %}
+
                 {% endfor %}
+
             </tbody>
+            <div>
+                            <button>Agregar otro Formulario de Datos de contacto</button>
+                        </div>
         </table>
     <input type="submit" value="Guardar!">
     </form>
-</body>
-</html>
+{% endblock %}
+
+{% block javascript %}
+<script>
+
+</script>
+{% endblock %}

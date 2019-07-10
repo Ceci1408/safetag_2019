@@ -10,13 +10,13 @@ import re
 
 class TipoCliente(models.Model):
     tipo_cliente_id = models.AutoField(primary_key=True)
-    tipo_cliente = models.CharField(max_length=50, blank=False, null=False)
+    tipo_cliente = models.CharField(max_length=50, blank=False, null=False, unique=True,
+                                    error_messages={'unique': _('Este tipo de cliente ya existe')})
     fecha_carga = models.DateTimeField(auto_now_add=True)
     flg_activo = models.BooleanField(blank=False, null=False)
 
     class Meta:
         ordering = ['tipo_cliente_id']
-        constraints = [models.UniqueConstraint(fields=['tipo_cliente'], name='unique_tipo_cliente')]
 
     def clean(self):
         if not self.tipo_cliente.isalpha():
@@ -75,11 +75,8 @@ class ClientePf(Cliente):
 
 class ClientePj(Cliente):
     cliente_razon_social = models.CharField(max_length=100, blank=True, null=True)
-    cliente_cuit = models.CharField(max_length=12, blank=False, null=False)
-
-    class Meta:
-        constraints = [models.UniqueConstraint(fields=['cliente_cuit'],
-                                               name='unique_cuit'), ]
+    cliente_cuit = models.CharField(max_length=12, blank=False, null=False, unique=True,
+                                    error_messages={'unique': _('Este CUIT ya existe')})
 
     def clean(self):
         if not self.cliente_cuit.isdigit():
@@ -115,12 +112,10 @@ class Domicilio(models.Model):
 
 class Pais(models.Model):
     pais_id = models.AutoField(primary_key=True)
-    pais = models.CharField(max_length=100, blank=False)
+    pais = models.CharField(max_length=100, blank=False, unique=True,
+                            error_messages={'unique': _('Este país ya fue ingresado')})
     fecha_carga = models.DateTimeField(auto_now_add=True)
     flg_activo = models.BooleanField(blank=False, null=False)
-
-    class Meta:
-        constraints = [models.UniqueConstraint(fields=['pais'], name='unique_pais')]
 
     def clean(self):
         if any(p.isdigit() for p in self.pais):
@@ -132,13 +127,11 @@ class Pais(models.Model):
 
 class Provincia(models.Model):
     provincia_id = models.AutoField(primary_key=True)
-    provincia = models.CharField(max_length=100, blank=False)
+    provincia = models.CharField(max_length=100, blank=False, unique=True,
+                                 error_messages={'unique': _('Esta provincia ya fue ingresada')})
     pais = models.ForeignKey(Pais, on_delete=models.PROTECT)
     fecha_carga = models.DateTimeField(auto_now_add=True)
     flg_activo = models.BooleanField(blank=False, null=False)
-
-    class Meta:
-        constraints = [models.UniqueConstraint(fields=['provincia'], name='unique_provincia')]
 
     def clean(self):
         if any(p.isdigit() for p in self.provincia):
@@ -159,7 +152,6 @@ class Localidad(models.Model):
     class Meta:
         constraints = [
             models.UniqueConstraint(fields=['localidad', 'localidad_cp'], name='unique_cp_localidad'),
-            models.UniqueConstraint(fields=['localidad'], name='unique_localidad')
         ]
 
     def clean(self):
@@ -210,13 +202,13 @@ class DatoContacto(models.Model):
         if self.dato_contacto_valor is not None:
             result = re.match(pattern, self.dato_contacto_valor)
 
-            if self.tipo_dato_contacto.tipo_dato_contacto == 'Email' and not result:
+            if self.tipo_dato_contacto == 'Email' and not result:
                 raise ValidationError({'dato_contacto_valor': _('El dato de contacto no tiene el formato necesario')})
 
-            if self.tipo_dato_contacto.tipo_dato_contacto in ('Celular', 'Teléfono') and self.dato_contacto_valor.isalpha():
+            if self.tipo_dato_contacto in ('Celular', 'Teléfono') and self.dato_contacto_valor.isalpha():
                 raise ValidationError({'dato_contacto_valor': _('El dato de contacto no tiene el formato necesario')})
 
-            if self.tipo_dato_contacto.tipo_dato_contacto in ('Celular', 'Teléfono') and len(self.dato_contacto_valor) != 10:
+            if self.tipo_dato_contacto in ('Celular', 'Teléfono') and len(self.dato_contacto_valor) != 10:
                 raise ValidationError({'dato_contacto_valor': _('El dato de contacto no tiene los dígitos correctos. Ingrese sin el cero. ')})
 
 
@@ -240,13 +232,13 @@ class Proveedor(models.Model):
 
     class Meta:
         constraints = [
-            models.UniqueConstraint(fields=['proveedor_razon_social'], name='unique_proveedor'),
             models.UniqueConstraint(fields=['proveedor_tipo_doc', 'proveedor_nro_doc'], name='unique_tipo_nro_doc_proveedor'),
         ]
 
     def clean(self):
-        if not self.proveedor_nro_doc.isdigit():
-            raise ValidationError({'proveedor_nro_doc': _('Sólo se permiten números')})
+        if self.proveedor_nro_doc is not None:
+            if not any(p.isdigit() for p in self.proveedor_nro_doc):
+                raise ValidationError({'proveedor_nro_doc': _('Sólo se permiten números')})
 
         if self.proveedor_tipo_doc in ('CUIT', 'CUIL') and len(self.proveedor_nro_doc) != 11:
             raise ValidationError({'proveedor_nro_doc': _('La longitud del número de documento no se corresponde con el tipo de documento')})
@@ -263,8 +255,7 @@ class Material(models.Model):
     material_costo_dolar = models.DecimalField(max_digits=10, decimal_places=3, blank=False, null=False)
     material_gramaje_grs = models.IntegerField(blank=True, null=True)
     material_demasia_hoja_mm = models.DecimalField(max_digits=10, decimal_places=2,  blank=False, null=False)
-    proveedores = models.ManyToManyField(Proveedor, related_name='material')
-    trabajos = models.ManyToManyField('TipoTrabajo', through='TipoTrabajoMaterial')
+    proveedores = models.ManyToManyField(Proveedor, related_name='material', blank=True)
     fecha_carga = models.DateTimeField(auto_now_add=True)
     flg_activo = models.BooleanField(blank=False, null=False)
 
@@ -272,10 +263,23 @@ class Material(models.Model):
         if any(p.isdigit() for p in self.material):
             raise ValidationError({'material': _('Sólo se permiten letras')})
 
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=['material', 'material_alto_mm', 'material_ancho_mm', 'material_gramaje_grs',
+                                            'material_costo_dolar'], name='unique_material'),
+        ]
+
+    def unique_error_message(self, model_class, unique_check):
+        if model_class == type(self) and unique_check == ('material', 'material_alto_mm', 'material_ancho_mm',
+                                                          'material_gramaje_grs', 'material_costo_dolar'):
+            return 'Este material ya se registró'
+        else:
+            return super(Material, self).unique_error_message(model_class, unique_check)
+
 
 class TipoTrabajo(models.Model):
     tipo_trabajo_id = models.AutoField(primary_key=True)
-    tipo_trabajo = models.CharField(max_length=50)
+    tipo_trabajo = models.CharField(max_length=50, unique=True, error_messages={'unique': _('Este tipo de trabajo ya existe')})
     tipo_trabajo_autoadhesivo_flg = models.BooleanField(blank=False, null=False)
     tipo_trabajo_doble_cara_flg = models.BooleanField(blank=False, null=False)
     tipo_trabajo_tiempo_aprox_hs = models.IntegerField(blank=True, null=True)
@@ -286,52 +290,50 @@ class TipoTrabajo(models.Model):
     medidas = models.ManyToManyField('MedidaEstandar')
     cantidades = models.ManyToManyField('Cantidad', through='TipoTrabajoCantidades')
     terminaciones = models.ManyToManyField('Terminacion'),
-
-    class Meta:
-        constraints = [
-            models.UniqueConstraint(fields=['tipo_trabajo'], name='unique_tipo_trabajo'),
-        ]
+    materiales = models.ManyToManyField(Material)
 
     def clean(self):
         if not self.tipo_trabajo.isalpha():
             raise ValidationError({'tipo_trabajo': _('Sólo se permiten letras')})
 
 
-class TipoTrabajoMaterial(models.Model):
-    tipo_trabajo = models.ForeignKey(TipoTrabajo, models.PROTECT)
-    material = models.ForeignKey(Material, models.PROTECT)
-    fecha_carga = models.DateTimeField(auto_now_add=True)
-    flg_activo = models.BooleanField(blank=False, null=False)
-
-    class Meta:
-        constraints = [
-            models.UniqueConstraint(fields=['tipo_trabajo', 'material', 'fecha_carga', 'flg_activo'], name='unique_tipo_trabajo_material_activo'),
-        ]
-
-
 class MedidaEstandar(models.Model):
     medida_estandar_id = models.AutoField(primary_key=True)
     medida_1_cm = models.DecimalField(max_digits=10, decimal_places=2)
-    medida_2_cm = models.DecimalField(max_digits=10, decimal_places=2)
+    medida_2_cm = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     fecha_carga = models.DateTimeField(auto_now_add=True)
     flg_activo = models.BooleanField(blank=False, null=False)
 
     class Meta:
         constraints = [
-            models.UniqueConstraint(fields=['medida_1_cm', 'medida_2_cm', 'fecha_carga', 'flg_activo'], name='unique_medida_estandar'),
+            models.UniqueConstraint(fields=['medida_1_cm', 'medida_2_cm'],
+                                    name='unique_medida_estandar'),
         ]
+        ordering = ['medida_1_cm', 'medida_2_cm']
+
+    def unique_error_message(self, model_class, unique_check):
+        if model_class == type(self) and (unique_check == ('medida_1_cm', 'medida_2_cm')
+                                          or unique_check == ('medida_2_cm', 'medida_1_cm')):
+            return 'Esta combinación ya existe'
+        else:
+            return super(MedidaEstandar, self).unique_error_message(model_class, unique_check)
+
+    def __str__(self):
+        return str(self.medida_1_cm) if self.medida_2_cm == 0 else str(self.medida_1_cm)+' x '+str(self.medida_2_cm)
 
 
 class Cantidad(models.Model):
     cantidad_id = models.AutoField(primary_key=True)
-    cantidad = models.IntegerField(blank=False, null=False)
+    cantidad = models.IntegerField(blank=False, null=False, unique=True,
+                                   error_messages={'unique':'Esta cantidad ya existe'})
     fecha_carga = models.DateTimeField(auto_now_add=True)
     flg_activo = models.BooleanField(blank=False, null=False)
 
+    def __str__(self):
+        return str(self.cantidad)
+
     class Meta:
-        constraints = [
-            models.UniqueConstraint(fields=['cantidad', 'fecha_carga', 'flg_activo'], name='unique_cantidad'),
-        ]
+        ordering = ['cantidad']
 
 
 class TipoTrabajoCantidades(models.Model):
@@ -350,15 +352,10 @@ class TipoTrabajoCantidades(models.Model):
 
 class TipoTerminacion(models.Model):
     tipo_terminacion_id = models.AutoField(primary_key=True)
-    tipo_terminacion = models.CharField(max_length=50, null=False)
+    tipo_terminacion = models.CharField(max_length=50, null=False, unique=True,
+                                        error_messages={'unique': _('Este tipo de terminación ya existe')})
     fecha_carga = models.DateTimeField(auto_now_add=True)
     flg_activo = models.BooleanField(blank=False, null=False)
-
-    class Meta:
-        constraints = [
-            models.UniqueConstraint(fields=['tipo_terminacion', 'fecha_carga', 'flg_activo'],
-                                    name='unique_tipo_terminacion'),
-        ]
 
     def clean(self):
         if not self.tipo_terminacion.isalpha():
@@ -367,17 +364,12 @@ class TipoTerminacion(models.Model):
 
 class Terminacion(models.Model):
     terminacion_id = models.AutoField(primary_key=True)
-    terminacion = models.CharField(max_length=100, blank=False, null=False)
+    terminacion = models.CharField(max_length=100, blank=False, null=False, unique=True,
+                                   error_messages={'unique': _('Esta terminación ya existe')})
     terminacion_tiempo_seg = models.PositiveSmallIntegerField(blank=False, null=False)
     tipo_terminacion = models.ForeignKey(TipoTerminacion, on_delete=models.PROTECT)
     fecha_carga = models.DateTimeField(auto_now_add=True)
     flg_activo = models.BooleanField(blank=False, null=False)
-
-    class Meta:
-        constraints = [
-            models.UniqueConstraint(fields=['terminacion', 'tipo_terminacion', 'fecha_carga', 'flg_activo'],
-                                    name='unique_terminacion'),
-        ]
 
     def clean(self):
         if not self.terminacion.isalpha():
@@ -386,15 +378,10 @@ class Terminacion(models.Model):
 
 class ColorImpresion(models.Model):
     color_impresion_id = models.AutoField(primary_key=True)
-    color_impresion = models.CharField(max_length=50, null=False, blank=False)
+    color_impresion = models.CharField(max_length=50, null=False, blank=False, unique=True, \
+                                       error_messages={'unique': _('Este color de impresión ya existe')})
     fecha_carga = models.DateTimeField(auto_now_add=True)
     flg_activo = models.BooleanField(blank=False, null=False)
-
-    class Meta:
-        constraints = [
-            models.UniqueConstraint(fields=['color_impresion', 'fecha_carga', 'flg_activo'],
-                                    name='unique_color'),
-        ]
 
     def clean(self):
         if not self.color_impresion.isalpha():
@@ -414,14 +401,9 @@ class Maquina(models.Model):
 
 
 class MaquinaTerminacion(Maquina):
-    maquina_terminacion_descripcion = models.CharField(max_length=50, blank=True, null=True)
+    maquina_terminacion_descripcion = models.CharField(max_length=50, blank=True, null=True, unique=True,
+                                                       error_messages={'unique': _('Esta maquina terminación ya existe')})
     terminaciones = models.ManyToManyField(Terminacion, through='MaquinaTerminacionTerminaciones')
-
-    class Meta:
-        constraints = [
-            models.UniqueConstraint(fields=['maquina_terminacion_descripcion', 'fecha_carga', 'flg_activo'],
-                                    name='unique_maq_terminacion'),
-        ]
 
 
 class MaquinaTerminacionTerminaciones(models.Model):
@@ -499,16 +481,11 @@ class ServicioTecnico(models.Model):
 
 class TipoPago(models.Model):
     tipo_pago_id = models.AutoField(primary_key=True)
-    tipo_pago = models.CharField(max_length=50, blank=False, null=False)
+    tipo_pago = models.CharField(max_length=50, blank=False, null=False, unique=True, \
+                                 error_messages={'unique': _('Este tipo de pago ya existe')})
     tipo_pago_recargo_porcentaje = models.DecimalField(max_digits=4, decimal_places=2, blank=True, null=False, default=0)
     fecha_carga = models.DateTimeField(auto_now_add=True)
     flg_activo = models.BooleanField(blank=False, null=False)
-
-    class Meta:
-        constraints = [
-            models.UniqueConstraint(fields=['tipo_pago', 'fecha_carga', 'flg_activo'],
-                                    name='unique_tipo_pago'),
-        ]
 
     def clean(self):
         if not self.tipo_pago.isalpha():
@@ -524,17 +501,12 @@ class ComprobanteCobro(models.Model):
 
 class ModoEnvio(models.Model):
     modo_envio_id = models.AutoField(primary_key=True)
-    modo_envio = models.CharField(max_length=50, blank=False, null=False)
+    modo_envio = models.CharField(max_length=50, blank=False, null=False, unique=True,\
+                                  error_messages={'unique': _('Este modo de envío ya existe')})
     modo_envio_costo_adicional = models.DecimalField(max_digits=5, decimal_places=2, blank=False, null=False, default=0)
     modo_envio_hs_aprox = models.DecimalField(max_digits=5, decimal_places=2, blank=False, null=False, default=0)
     fecha_carga = models.DateTimeField(auto_now_add=True)
     flg_activo = models.BooleanField(blank=False, null=False)
-
-    class Meta:
-        constraints = [
-            models.UniqueConstraint(fields=['modo_envio', 'fecha_carga', 'flg_activo'],
-                                    name='unique_modo_envio'),
-        ]
 
     def clean(self):
         if not self.modo_envio.isalpha():
@@ -604,21 +576,16 @@ class Estado(models.Model):
         ('NO_FINAL', 'Estado no final')
     )
     estado_id = models.AutoField(primary_key=True)
-    estado = models.CharField(max_length=50, blank=False, null=False)
+    estado = models.CharField(max_length=50, blank=False, null=False, unique=True, \
+                              error_messages={'unique': _('Este estado ya está registrado')})
     tipo_estado = models.CharField(choices=TIPO_ESTADO, max_length=50, null=False, blank=False)
     fecha_carga = models.DateTimeField(auto_now_add=True)
     flg_activo = models.BooleanField(blank=False, null=False)
 
-    class Meta:
-        constraints = [
-            models.UniqueConstraint(fields=['estado', 'fecha_carga', 'flg_activo'],
-                                    name='unique_estado'),
-        ]
-
 
 class OrdenTrabajo(models.Model):
     orden_id = models.AutoField(primary_key=True)
-    solicitud = models.ForeignKey(SolicitudPresupuesto, on_delete=models.PROTECT)
+    solicitud = models.OneToOneField(SolicitudPresupuesto, on_delete=models.PROTECT)
     orden_fecha_creacion = models.DateTimeField(auto_now_add=True)
     orden_precio_final = models.DecimalField(max_digits=6, decimal_places=2, blank=False, null=False)
     orden_express_flg = models.BooleanField()
@@ -627,11 +594,6 @@ class OrdenTrabajo(models.Model):
     orden_disenio_realizado_flg = models.BooleanField()
     orden_comentarios = models.TextField()
     estados = models.ManyToManyField(Estado, through='OrdenTrabajoEstado')
-
-    class Meta:
-        constraints = [
-            models.UniqueConstraint(fields=['solicitud'], name='unique_ot'),
-        ]
 
 
 class OrdenTrabajoEstado(models.Model):
@@ -728,12 +690,6 @@ class DomicilioForm(ModelForm):
                         },
 
 
-DomicilioPfFormSetAlta = inlineformset_factory(ClientePf, Domicilio, form=DomicilioForm, extra=1, can_order=False,
-                                           can_delete=False)
-DomicilioPjFormSetAlta= inlineformset_factory(ClientePj, Domicilio, form=DomicilioForm, extra=1, can_order=False,
-                                           can_delete=False)
-
-
 class PaisForm(ModelForm):
     class Meta:
         model = Pais
@@ -780,13 +736,6 @@ class DatoContactoForm(ModelForm):
                    'flg_activo']
 
 
-DatoContactoPfFormAlta = inlineformset_factory(ClientePf, DatoContacto, form=DatoContactoForm, extra=1, can_order=False,
-                                           can_delete=False)
-
-DatoContactoPjFormAlta = inlineformset_factory(ClientePj, DatoContacto, form=DatoContactoForm, extra=1, can_order=False,
-                                           can_delete=False)
-
-
 class ProveedorForm(ModelForm):
     class Meta:
         model = Proveedor
@@ -822,7 +771,7 @@ class MaterialForm(ModelForm):
 class TipoTrabajoForm(ModelForm):
     class Meta:
         model = TipoTrabajo
-        exclude = ['tipo_trabajo_id', 'fecha_carga']
+        exclude = ['tipo_trabajo_id', 'fecha_carga', 'cantidades']
         labels = {
             'tipo_trabajo': _('Trabajo'),
             'tipo_trabajo_autoadhesivo_flg': _('Es autoadhesivo'),
@@ -834,23 +783,13 @@ class TipoTrabajoForm(ModelForm):
         }
         widgets = {
             'medidas': forms.SelectMultiple(),
-            'cantidades': forms.SelectMultiple(),
-            'terminaciones': forms.SelectMultiple()
+            #'cantidades': forms.SelectMultiple(),
+            'terminaciones': forms.SelectMultiple(),
+            'materiales': forms.SelectMultiple()
         }
-
-
-class TipoTrabajoMaterialForm(ModelForm):
-    class Meta:
-        model = TipoTrabajoMaterial
-        exclude = ['fecha_carga']
-        labels = {
-            'tipo_trabajo': _('Trabajo'),
-            'flg_activo': _('Relación activa')
-        }
-        widgets = {
-            'tipo_trabajo': forms.Select(),
-            'material': forms.MultipleChoiceField,
-            'terminaciones': forms.MultipleChoiceField()
+        help_texts={
+            'medidas': _('Mantenga <Ctrl> presionado para seleccionar más de una opción'),
+            'materiales': _('Mantenga <Ctrl> presionado para seleccionar más de una opción'),
         }
 
 
@@ -863,6 +802,11 @@ class MedidaEstandarForm(ModelForm):
             'medida_2_cm': _('Medida 2 (cm)'),
             'flg_activo': _('Medida activa')
         }
+        error_messages = {
+             NON_FIELD_ERRORS: {
+                 'unique_together': "%(field_labels)s del modelo %(model_name)s  no son únicos.",
+             }
+         }
 
 
 class CantidadForm(ModelForm):

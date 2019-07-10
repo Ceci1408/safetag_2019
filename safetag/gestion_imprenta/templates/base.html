@@ -1,0 +1,20 @@
+{% load static %}
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>{% block title %} Título por defecto {% endblock %}</title>
+    <link rel="stylesheet" type="text/css" href="{% static 'css/gestion_imprenta.css' %}">
+    {% block stylesheet %}
+    {% endblock %}
+</head>
+<body>
+ {% block content %}
+  Test de bloque!!
+ {% endblock %}
+
+ <script src="https://code.jquery.com/jquery-3.1.0.min.js"></script>
+{% block javascript %}
+
+{% endblock %}
+</body>
+</html>
