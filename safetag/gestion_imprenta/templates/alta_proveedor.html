@@ -6,6 +6,7 @@
 {% block content %}
     <form action="{% url 'alta_proveedor' %}" method="post">
         {% csrf_token %}
+         {{ form.non_field_errors }}
         <table>
             <thead>
                 <tr>

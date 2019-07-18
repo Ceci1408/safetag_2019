@@ -1,10 +1,9 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Alta Cliente persona Jurídica</title>
-</head>
-<body>
+{% extends base.html %}
+{% block title %}
+    Alta Cliente persona Jurídica
+{% endblock %}
+
+{% block content %}
     <form action="{% url 'alta_cliente_pj' %}" method="post">
         {% csrf_token %}
         <table>
@@ -52,29 +51,7 @@
                     {% endfor %}
                 {% endfor %}
             </tbody>
-            <tbody>
-             {{ form_dc.management_form }}
-                {% for form in form_dc %}
-                    {% for f in form.visible_fields %}
-                        <tr>
-                            <td>
-                                {{ f.label_tag }}
-                            </td>
-                            <td>
-                                {{ f }}
-                            </td>
-                            <td>
-                                {{ f.errors }}
-                            </td>
-                            <td>
-                                {{ f.help_text }}
-                            </td>
-                        </tr>
-                    {% endfor %}
-                {% endfor %}
-            </tbody>
         </table>
     <input type="submit" value="Guardar!">
     </form>
-</body>
-</html>
+{% endblock %}

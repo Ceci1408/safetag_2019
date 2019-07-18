@@ -40,6 +40,12 @@ class Cliente(models.Model):
         ordering = ['cliente_id']
 
 
+    def dar_identificacion(self):
+        pass
+
+    def dar_nombre_razon_social(self):
+        pass
+
 class ClientePf(Cliente):
     TIPO_DOC = (
         ('DNI', 'DNI'),
@@ -72,6 +78,12 @@ class ClientePf(Cliente):
                  (len(self.cliente_nro_documento)<=5  or len(self.cliente_nro_documento) >= 9)):
             raise ValidationError({'cliente_nro_documento': _('La longitud del número de documento no se corresponde con el tipo de documento')})
 
+    def dar_identificacion(self):
+        return self.cliente_tipo_documento+" - "+self.cliente_nro_documento
+
+    def dar_nombre_razon_social(self):
+        return self.cliente_nombre +" "+ self.cliente_apellido
+
 
 class ClientePj(Cliente):
     cliente_razon_social = models.CharField(max_length=100, blank=True, null=True)
@@ -81,6 +93,12 @@ class ClientePj(Cliente):
     def clean(self):
         if not self.cliente_cuit.isdigit():
             raise ValidationError({'cliente_cuit': _('Sólo se permiten números')})
+
+    def dar_identificacion(self):
+        return "CUIT -"+self.cliente_cuit
+
+    def dar_nombre_razon_social(self):
+        return self.cliente_razon_social
 
 # TODO hacer obligatorios localidad, provincia y pais. Para hacer geolocalización
 
@@ -160,6 +178,12 @@ class Localidad(models.Model):
 
     def __str__(self):
         return self.localidad
+
+    def unique_error_message(self, model_class, unique_check):
+        if model_class == type(self) and (unique_check == ('localidad', 'localidad_cp')):
+            return 'La localidad con el CP, ya existen'
+        else:
+            return super(MedidaEstandar, self).unique_error_message(model_class, unique_check)
 
 
 class DatoContacto(models.Model):
@@ -716,7 +740,7 @@ class LocalidadForm(ModelForm):
             'flg_activo': _('Activo')
         }
 
-
+# TODO Este formulario si y sólo si debe llamarse cuando exista una instancia de Cliente, proveedor o Servicio Tecnico.
 class DatoContactoForm(ModelForm):
     class Meta:
         model = DatoContacto

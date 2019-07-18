@@ -6,6 +6,7 @@
 {% block content %}
     <form action="{% url 'alta_cliente_pf' %}" method="post">
         {% csrf_token %}
+         {{ form.non_field_errors }}
         <table>
             <thead>
                 <tr>
@@ -51,28 +52,6 @@
                     {% endfor %}
                 {% endfor %}
             </tbody>
-            <tbody>
-             {{ form_dc.management_form }}
-                {% for form in form_dc %}
-                    {% for f in form.visible_fields %}
-                        <tr>
-                            <td>
-                                {{ f.label_tag }}
-                            </td>
-                            <td>
-                                {{ f }}
-                            </td>
-                            <td>
-                                {{ f.errors }}
-                            </td>
-                            <td>
-                                {{ f.help_text }}
-                            </td>
-                        </tr>
-                    {% endfor %}
-                {% endfor %}
-            </tbody>
-
         </table>
     <input type="submit" value="Guardar!">
     </form>

@@ -4,7 +4,8 @@
 {% endblock %}
 
 {% block content %}
-    <form action="{% url 'alta_localidad' %}" method="post">
+{% include 'resumen_cliente.html' %}
+    <form action="{% url 'cliente_alta_dc' cliente.cliente_id %}" method="post">
         {% csrf_token %}
         {{ form.non_field_errors }}
         <table>
