@@ -3,6 +3,7 @@ from django.db import models
 from django.contrib.auth.models import User
 from django.forms import ModelForm
 from django import forms
+from django.conf import settings
 from django.forms.models import inlineformset_factory, modelformset_factory
 from django.utils.translation import gettext_lazy as _
 import re
@@ -39,11 +40,13 @@ class Cliente(models.Model):
         abstract = True
         ordering = ['cliente_id']
 
-
     def dar_identificacion(self):
         pass
 
     def dar_nombre_razon_social(self):
+        pass
+
+    def dar_pk(self):
         pass
 
 class ClientePf(Cliente):
@@ -84,6 +87,9 @@ class ClientePf(Cliente):
     def dar_nombre_razon_social(self):
         return self.cliente_nombre +" "+ self.cliente_apellido
 
+    def dar_pk(self):
+        return self.pk
+
 
 class ClientePj(Cliente):
     cliente_razon_social = models.CharField(max_length=100, blank=True, null=True)
@@ -99,6 +105,9 @@ class ClientePj(Cliente):
 
     def dar_nombre_razon_social(self):
         return self.cliente_razon_social
+
+    def dar_pk(self):
+        return self.pk
 
 # TODO hacer obligatorios localidad, provincia y pais. Para hacer geolocalización
 
@@ -204,11 +213,10 @@ class DatoContacto(models.Model):
     cliente_pj = models.ForeignKey(ClientePj, on_delete=models.CASCADE, blank=True, null=True)
     proveedor = models.ForeignKey('Proveedor', on_delete=models.CASCADE, blank=True, null=True)
     servicio_tecnico = models.ForeignKey('ServicioTecnico', on_delete=models.CASCADE, blank=True, null=True)
-    dato_contacto_interno = models.PositiveSmallIntegerField(blank=True, null=True)
     dato_contacto_uso = models.CharField(choices=USO, max_length=50,blank=True, null=True)
     dato_contacto_horario_contacto = models.CharField(max_length=100, blank=True, null=False)
     dato_contacto_flg_no_llame = models.NullBooleanField()
-    dato_contacto_comentarios = models.TextField()
+    dato_contacto_comentarios = models.TextField(blank=True, null=True)
     fecha_carga = models.DateTimeField(auto_now_add=True)
     flg_activo = models.BooleanField(blank=False, null=False)
 
@@ -226,13 +234,16 @@ class DatoContacto(models.Model):
         if self.dato_contacto_valor is not None:
             result = re.match(pattern, self.dato_contacto_valor)
 
-            if self.tipo_dato_contacto == 'Email' and not result:
+            if self.tipo_dato_contacto == 'EMAIL' and not result:
                 raise ValidationError({'dato_contacto_valor': _('El dato de contacto no tiene el formato necesario')})
 
-            if self.tipo_dato_contacto in ('Celular', 'Teléfono') and self.dato_contacto_valor.isalpha():
+            if self.tipo_dato_contacto == 'EMAIL' and result and self.dato_contacto_flg_no_llame is not None:
+                raise ValidationError({'dato_contacto_flg_no_llame': _('No use el flag. Aplica sólo para teléfonos')})
+
+            if self.tipo_dato_contacto in ('CEL', 'TEL') and not self.dato_contacto_valor.isdigit():
                 raise ValidationError({'dato_contacto_valor': _('El dato de contacto no tiene el formato necesario')})
 
-            if self.tipo_dato_contacto in ('Celular', 'Teléfono') and len(self.dato_contacto_valor) != 10:
+            if self.tipo_dato_contacto in ('CEL', 'TEL') and self.dato_contacto_valor.isdigit() and len(self.dato_contacto_valor) != 10:
                 raise ValidationError({'dato_contacto_valor': _('El dato de contacto no tiene los dígitos correctos. Ingrese sin el cero. ')})
 
 
@@ -373,25 +384,18 @@ class TipoTrabajoCantidades(models.Model):
                                     name='unique_tipo_trabajo_cantidad'),
         ]
 
-
-class TipoTerminacion(models.Model):
-    tipo_terminacion_id = models.AutoField(primary_key=True)
-    tipo_terminacion = models.CharField(max_length=50, null=False, unique=True,
-                                        error_messages={'unique': _('Este tipo de terminación ya existe')})
-    fecha_carga = models.DateTimeField(auto_now_add=True)
-    flg_activo = models.BooleanField(blank=False, null=False)
-
-    def clean(self):
-        if not self.tipo_terminacion.isalpha():
-            raise ValidationError({'tipo_terminacion': _('Sólo se permiten letras')})
-
-
 class Terminacion(models.Model):
+    TIPO_TERMINACION = (
+        ('ABROCHADO', 'Abrochado'),
+        ('CORTE', 'Corte'),
+        ('IMPRESION', 'Impresión'),
+        ('LAMINADO', 'Laminado'),
+    )
     terminacion_id = models.AutoField(primary_key=True)
     terminacion = models.CharField(max_length=100, blank=False, null=False, unique=True,
                                    error_messages={'unique': _('Esta terminación ya existe')})
     terminacion_tiempo_seg = models.PositiveSmallIntegerField(blank=False, null=False)
-    tipo_terminacion = models.ForeignKey(TipoTerminacion, on_delete=models.PROTECT)
+    tipo_terminacion = models.CharField(choices=TIPO_TERMINACION, max_length=100, blank=False, null=False, )
     fecha_carga = models.DateTimeField(auto_now_add=True)
     flg_activo = models.BooleanField(blank=False, null=False)
 
@@ -521,7 +525,7 @@ class ComprobanteCobro(models.Model):
     comprobante_fecha_cobro = models.DateTimeField(auto_now_add=True)
     comprobante_monto_cobro = models.DecimalField(max_digits=6, decimal_places=2, blank=False, null=False)
     tipo_pago = models.ForeignKey(TipoPago, on_delete=models.PROTECT)
-
+    fecha_carga = models.DateTimeField(auto_now_add=True)
 
 class ModoEnvio(models.Model):
     modo_envio_id = models.AutoField(primary_key=True)
@@ -536,7 +540,7 @@ class ModoEnvio(models.Model):
         if not self.modo_envio.isalpha():
             raise ValidationError({'modo_envio': _('Sólo se permiten letras')})
 
-
+# TODO Chequear el tema de los adjuntos
 class SolicitudPresupuesto(models.Model):
     ORIENTACION = (
         ('V', 'Vertical'),
@@ -551,7 +555,7 @@ class SolicitudPresupuesto(models.Model):
     solicitud_fecha_confirmacion = models.DateTimeField(blank=True, null=True)
     solicitud_express_flg = models.BooleanField()
     solicitud_doble_cara_impresion_flg = models.BooleanField()
-    solicitud_adjuntos = models.FilePathField()
+    solicitud_adjuntos = models.FileField()
     solicitud_orientacion = models.CharField(choices=ORIENTACION, max_length=5, blank=True, null=True)
     solicitud_email_enviado_flg = models.BooleanField()
     cliente_pf = models.ForeignKey(ClientePf, on_delete=models.PROTECT, null=False)
@@ -560,6 +564,11 @@ class SolicitudPresupuesto(models.Model):
     color_impresion = models.ForeignKey(ColorImpresion, on_delete=models.PROTECT, null=False)
     material = models.ForeignKey(Material, on_delete=models.PROTECT, null=False)
     envio = models.ForeignKey(ModoEnvio, on_delete=models.PROTECT, null=False)
+
+    def clean(self):
+        if self.tipo_trabajo.tipo_trabajo_autoadhesivo_flg and self.solicitud_doble_cara_impresion_flg:
+            raise ValidationError({'solicitud_doble_cara_impresion_flg': _('El tipo de trabajo es autoadhesivo y '
+                                                                           'no se puede hacer impresión en ambas caras')})
 
 
 class SolicitudPresupuestoTerminaciones(models.Model):
@@ -847,5 +856,154 @@ class TipoTrabajoCantidadesForm(ModelForm):
         model = TipoTrabajoCantidades
         exclude = ['fecha_carga']
         labels = {
-            'flg_activo': _('Cantidad activa')
+            'flg_activo': _('Tipo de trabajo activo')
+        }
+
+##
+class TerminacionForm(ModelForm):
+    class Meta:
+        model = Terminacion
+        exclude = ['fecha_carga', 'terminacion_id']
+        labels = {
+            'flg_activo': _('Terminación activa')
+        }
+        widgets = {
+            'tipo_terminacion': forms.Select()
+        }
+
+
+class ColorImpresionForm(ModelForm):
+    class Meta:
+        model = ColorImpresion
+        exclude = ['fecha_carga', 'color_impresion_id']
+        labels = {
+            'flg_activo': _('Color de impresión activo')
+        }
+
+
+class MaquinaTerminacionForm(ModelForm):
+    class Meta:
+        model = MaquinaTerminacion
+        exclude = ['fecha_carga', 'maquina_id']
+        labels = {
+            'flg_activo': _('Maquina activa')
+        }
+
+
+class MaquinaTerminacionTerminacionesForm(ModelForm):
+    class Meta:
+        model = MaquinaTerminacionTerminaciones
+        exclude = ['fecha_carga']
+        labels = {
+            'maquina_terminacion': _('Máquina de terminación'),
+            'cant_max': _('Cantidad máxima'),
+            'cant_max_costo_dolar': _('Costo (u$s'),
+            'flg_activo': _('Combinación de Máquina y Terminación activa')
+        }
+
+
+class MaquinaPliegoForm(ModelForm):
+    class Meta:
+        model = MaquinaPliego
+        exclude = ['fecha_carga', 'maquina_id', 'colores_impresion']
+        labels = {
+            'flg_activo': _('Maquina activa'),
+            'maquina_pliego_descripcion': _('Descripción'),
+            'maquina_pliego_ult_cambio_toner': _('Último cambio de tóner/cartucho'),
+            'demasia_impresion_mm': _('Demasía necesaria para los trabajos (mm)'),
+        }
+
+# Esta es necesaria, porque un color puede imprimirse con varias máquinas
+class MaquinaPliegoColorImpresionForm(ModelForm):
+    class Meta:
+        model = MaquinaPliegoColorImpresion
+        exclude = ['fecha_carga']
+        labels = {
+            'maquina_pliego': _('Máquina'),
+            'color_impresion': _('Color'),
+            'costo_dolar': _('Costo impresión (u$s)')
+        }
+
+# Esta es necesaria porque cuando llega una SP, de acuerdo al tipo de trabajo y al color requerido, el usuario va a
+# poder elegir con qué máquina realizará el trabajo
+class ImpresionForm(ModelForm):
+    class Meta:
+        model = Impresion
+        exclude = ['fecha_carga']
+        labels = {
+            'tipo_trabajo': _('Tipo de trabajo'),
+            'color_impresion': _('Color'),
+            'maquina_pliego': _('Máquina'),
+            'flg_activo': _('Combinacion activa'),
+        }
+
+class ServicioTecnicoForm(ModelForm):
+    class Meta:
+        model = ServicioTecnico
+        exclude = ['fecha_carga', 'servicio_tecnico_id']
+        labels = {
+            'servicio_tecnico': _('Razón social'),
+            'flg_activo': _('Servicio activo'),
+        }
+
+class TipoPagoForm(ModelForm):
+    class Meta:
+        model = TipoPago
+        exclude = ['tipo_pago_id',  'fecha_carga']
+        labels = {
+            'tipo_pago': _('Tipo de pago'),
+            'tipo_pago_recargo_porcentaje': _('Recargo (%)'),
+            'flg_activo': _('Tipo de pago activo')
+        }
+
+
+class ComprobanteCobroForm(ModelForm):
+    class Meta:
+        model = ComprobanteCobro
+        exclude = ['comprobante_id', 'fecha_carga']
+        labels = {
+            'comprobante_fecha_cobro': _('Fecha de cobro'),
+            'comprobante_monto_cobro': _('Monto recibido'),
+            'tipo_pago': _('Tipo de pago')
+        }
+
+
+class ModoEnvioForm(ModelForm):
+    class Meta:
+        model = ModoEnvio
+        exclude = ['modo_envio_id', 'fecha_carga']
+        labels = {
+            'modo_envio_costo_adicional': _('Costo adicional'),
+            'modo_envio_hs_aprox' : _('¿Cuánto tarda aprox? (hs)'),
+            'flg_activo': _('Modo de envío activo')
+        }
+
+
+class SolicitudPresupuestoForm(ModelForm):
+    class Meta:
+        model = SolicitudPresupuesto
+        exclude = ['solicitud_id', 'solicitud_fecha', 'solicitud_fecha_confirmacion', 'solicitud_email_enviado_flg',
+                   'cliente_pf', 'cliente_pj']
+        labels = {
+            'solicitud_disenio_flg': _('Requiere diseño previo'),
+            'solicitud_trabajo_alto_mm': _('Alto (mm)'),
+            'solicitud_trabajo_ancho_mm': _('Ancho (mm)'),
+            'solicitud_terminacion_flg': _('Requiere de terminaciones'),
+            'solicitud_express_flg': _('Solicitud EXPRESS'),
+            'solicitud_doble_cara_impresion_flg': _('Impresión en ambas caras'),
+            'solicitud_adjuntos': _('Adjuntos'),
+            'solicitud_orientacion': _('Orientación'),
+            'tipo_trabajo': _('Trabajo requerido'),
+            'color_impresion': _('Color de impresión'),
+            'material': _('Material'),
+            'envio': _('Envío')
+        }
+
+
+class SolicitudPresupuestoTerminacionesForm(ModelForm):
+    class Meta:
+        model = SolicitudPresupuestoTerminaciones
+        exclude = ['solicitud']
+        labels = {
+            'doble_cara_flg': _('Terminación para ambas caras')
         }
