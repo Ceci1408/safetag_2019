@@ -595,6 +595,10 @@ class Presupuesto(models.Model):
     maquina_pliego = models.ForeignKey(MaquinaPliego, on_delete=models.PROTECT)
     fecha_carga = fecha_carga = models.DateTimeField(auto_now_add=True)
 
+    def clean(self):
+        if not self.solicitud.solicitud_disenio_flg and self.presupuesto_costo_disenio is not None:
+            raise ValidationError({'presupuesto_costo_disenio': _('La solicitud no incluía diseño')})
+
 
 class PresupuestoTerminaciones(models.Model):
     presupuesto = models.ForeignKey(Presupuesto, on_delete=models.PROTECT)
@@ -621,7 +625,6 @@ class OrdenTrabajo(models.Model):
     solicitud = models.OneToOneField(SolicitudPresupuesto, on_delete=models.PROTECT)
     orden_fecha_creacion = models.DateTimeField(auto_now_add=True)
     orden_precio_final = models.DecimalField(max_digits=6, decimal_places=2, blank=False, null=False)
-    orden_express_flg = models.BooleanField()
     orden_impresion_realizada_flg = models.BooleanField()
     orden_terminacion_realizada_flg = models.BooleanField()
     orden_disenio_realizado_flg = models.BooleanField()
@@ -1007,3 +1010,73 @@ class SolicitudPresupuestoTerminacionesForm(ModelForm):
         labels = {
             'doble_cara_flg': _('Terminación para ambas caras')
         }
+
+
+class PresupuestoForm(ModelForm):
+    class Meta:
+        model = Presupuesto
+        exclude = ['solicitud', 'fecha_carga']
+        labels = {
+            'presupuesto_ganancia': _('Ganancia (%)'),
+            'presupuesto_hojas_utilizadas': _('Hojas a utilizar (aprox)'),
+            'presupuesto_precio_dolar': _('Cotización dolar'),
+            'presupuesto_costo_materiales': _('Costo de materiales'),
+            'presupuesto_costo_disenio': _('Costo de diseño'),
+            'presupuesto_costo_unitario': _('Costo unitario'),
+            'presupuesto_precio_cliente': _('Precio sugerido al cliente'),
+            'maquina_pliego': _('Máquina de impresión a utilizar'),
+        }
+        widgets = {
+            'presupuesto_hojas_utilizadas': forms.NumberInput(attrs={'disabled': True}),
+            'presupuesto_costo_materiales': forms.NumberInput(attrs={'disabled': True}),
+            'presupuesto_costo_unitario': forms.NumberInput(attrs={'disabled': True}),
+        }
+
+
+class PresupuestoTerminacionesForm(ModelForm):
+    class Meta:
+        model = PresupuestoTerminaciones
+        exclude = ['presupuesto']
+        labels = {
+            'maquina_terminacion': _('Máquina de terminación'),
+            'terminación': _('Terminación'),
+            'costo_dolar': _('Costo terminación (u$s)')
+        }
+        widgets = {
+            'terminacion': forms.Select(attrs={'disabled': True})
+        }
+
+
+class EstadoForm(ModelForm):
+    class Meta:
+        model = Estado
+        exclude = ['estado_id', 'fecha_carga']
+        labels = {
+            'flg_activo': _('Estado activo'),
+        }
+
+
+class OrdenTrabajoForm(ModelForm):
+    class Meta:
+        model = OrdenTrabajo
+        exclude = ['orden_id', 'solicitud', 'orden_fecha_creacion', 'estados']
+        labels = {
+            'orden_precio_final': _('Precio final'),
+            'orden_impresion_realizada_flg': _('Impresión realizada'),
+            'orden_terminacion_realizada_flg': _('Terminaciones realizadas'),
+            'orden_disenio_realizado_flg': _('Diseño realizado'),
+            'orden_comentarios': _('Comentarios')
+        }
+
+
+class OrdenTrabajoEstadoForm(ModelForm):
+    class Meta:
+        model = OrdenTrabajoEstado
+        exclude = ['orden_trabajo']
+        labels = {
+            'fecha_cambio_estado': _('Fecha'),
+            'personal': _('Usuario')
+        }
+
+
+# TODO ¿Formulario para Personal?
