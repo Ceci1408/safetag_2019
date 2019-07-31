@@ -3,8 +3,8 @@ from django.http import HttpResponse
 from django.db import transaction
 from django.shortcuts import get_object_or_404
 from .models import ClientePfForm, ClientePjForm, TipoClienteForm, PaisForm, ProvinciaForm, LocalidadForm, \
-    ProveedorForm, MaterialForm, TipoTrabajoForm, MedidaEstandarForm, DatoContactoForm, CantidadForm, Cliente, \
-    ClientePf, ClientePj, Proveedor, ServicioTecnico, ColorImpresionForm, DomicilioForm
+    ProveedorForm, MaterialForm, TipoTrabajoForm, MedidaEstandarForm, DatoContactoForm, CantidadForm, TipoTrabajo, \
+    ClientePf, ClientePj, Proveedor, ServicioTecnico, ColorImpresionForm, DomicilioForm, TipoTrabajoCantidadesFormset
 
 # Create your views here.
 def index(request):
@@ -160,7 +160,7 @@ def alta_proveedor(request):
 def alta_material(request):
     if request.method == 'POST':
         form = MaterialForm(request.POST)
-        if form.is_valid() :
+        if form.is_valid():
             with transaction.atomic():
                form.save()
     else:
@@ -174,8 +174,7 @@ def alta_tipo_trabajo(request):
 
         if form.is_valid():
             with transaction.atomic():
-                form.save(commit=False)
-
+                form.save()
     else:
         form = TipoTrabajoForm()
     return render(request, 'alta_tipo_trabajo.html', context={'form': form,})
@@ -242,7 +241,7 @@ def cliente_alta_domicilio(request, id_cliente):
     return render(request, 'alta_domicilio.html', context={'cliente': cliente, 'form': form})
 
 
-def proveedor_alta_domiclio(request, id_proveedor):
+def proveedor_alta_domicilio(request, id_proveedor):
     proveedor = Proveedor.objects.get(pk=id_proveedor)
 
     if request.method == 'POST':
@@ -256,6 +255,17 @@ def proveedor_alta_domiclio(request, id_proveedor):
     else:
         form = DomicilioForm(instance=proveedor)
     return render(request, 'alta_domicilio_proveedor.html', context={'proveedor': proveedor, 'form': form})
+
+
+def tipo_trabajo_cantidad(request, tipo_trabajo_id):
+    trabajo = TipoTrabajo.objects.get(pk=tipo_trabajo_id)
+    if request.method == 'POST':
+        formset = TipoTrabajoCantidadesFormset(request.POST, instance=trabajo)
+        if formset.is_valid():
+            formset.save()
+    else:
+        formset = TipoTrabajoCantidadesFormset(instance=trabajo)
+    return render(request, 'formset_tipo_trabajo_cantidad.html', {'formset': formset})
 
 # TODO acá posiblemente sea necesario pasar una instancia de qué trabajo estamos hablando
 # TODO O sea: Luego del alta de un tipo de trabajo, que haya un botón que diga: Asociar material y me traiga acá

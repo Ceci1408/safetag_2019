@@ -328,8 +328,11 @@ class TipoTrabajo(models.Model):
     materiales = models.ManyToManyField(Material)
 
     def clean(self):
-        if not self.tipo_trabajo.isalpha():
+        if any(tt.isdigit() for tt in self.tipo_trabajo):
             raise ValidationError({'tipo_trabajo': _('Sólo se permiten letras')})
+
+        if self.tipo_trabajo_autoadhesivo_flg and self.tipo_trabajo_doble_cara_flg:
+            raise ValidationError({'tipo_trabajo_doble_cara_flg': _('Si el trabajo es autoadhesivo, no permite impresión doble cara')})
 
 
 class MedidaEstandar(models.Model):
@@ -862,7 +865,9 @@ class TipoTrabajoCantidadesForm(ModelForm):
             'flg_activo': _('Tipo de trabajo activo')
         }
 
-##
+TipoTrabajoCantidadesFormset = inlineformset_factory(TipoTrabajo, TipoTrabajoCantidades, form=TipoTrabajoCantidadesForm,
+                                                     extra=2)
+
 class TerminacionForm(ModelForm):
     class Meta:
         model = Terminacion
@@ -939,6 +944,7 @@ class ImpresionForm(ModelForm):
             'maquina_pliego': _('Máquina'),
             'flg_activo': _('Combinacion activa'),
         }
+
 
 class ServicioTecnicoForm(ModelForm):
     class Meta:

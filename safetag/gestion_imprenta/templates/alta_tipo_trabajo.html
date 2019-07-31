@@ -7,6 +7,7 @@
 <body>
     <form action="{% url 'alta_tipo_trabajo' %}" method="post">
         {% csrf_token %}
+        {{ form.non_field_errors }}
         <table>
             <thead>
                 <tr>
@@ -29,27 +30,6 @@
                         {{ f.help_text }}
                     </td>
                 </tr>
-                {% endfor %}
-            </tbody>
-            <tbody>
-             {{ formset_cant.management_form }}
-                {% for form in formset_cant %}
-                    {% for f in form.visible_fields %}
-                        <tr>
-                            <td>
-                                {{ f.label_tag }}
-                            </td>
-                            <td>
-                                {{ f }}
-                            </td>
-                            <td>
-                                {{ f.errors }}
-                            </td>
-                            <td>
-                                {{ f.help_text }}
-                            </td>
-                        </tr>
-                    {% endfor %}
                 {% endfor %}
             </tbody>
         </table>
