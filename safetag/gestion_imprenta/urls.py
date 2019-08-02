@@ -22,5 +22,7 @@ urlpatterns = [
     path('alta_medida_estandar', views.alta_medida_estandar, name='alta_medida_estandar'),
     path('alta_cantidad', views.alta_cantidad, name='alta_cantidad'),
     path('alta_color_impresion', views.alta_color_impresion, name='alta_color_impresion'),
-    path('tipo_trabajo/<int:tipo_trabajo_id>/cantidad', views.tipo_trabajo_cantidad, name='tipo_trabajo_cantidad')
+    path('tipo_trabajo/<int:tipo_trabajo_id>/cantidad', views.tipo_trabajo_cantidad, name='tipo_trabajo_cantidad'),
+    path('alta_terminacion', views.alta_terminacion, name='alta_terminacion'),
+
 ]

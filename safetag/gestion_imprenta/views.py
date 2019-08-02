@@ -4,7 +4,8 @@ from django.db import transaction
 from django.shortcuts import get_object_or_404
 from .models import ClientePfForm, ClientePjForm, TipoClienteForm, PaisForm, ProvinciaForm, LocalidadForm, \
     ProveedorForm, MaterialForm, TipoTrabajoForm, MedidaEstandarForm, DatoContactoForm, CantidadForm, TipoTrabajo, \
-    ClientePf, ClientePj, Proveedor, ServicioTecnico, ColorImpresionForm, DomicilioForm, TipoTrabajoCantidadesFormset
+    ClientePf, ClientePj, Proveedor, ServicioTecnico, ColorImpresionForm, DomicilioForm, TipoTrabajoCantidadesFormset,\
+    TerminacionForm
 
 # Create your views here.
 def index(request):
@@ -263,9 +264,23 @@ def tipo_trabajo_cantidad(request, tipo_trabajo_id):
         formset = TipoTrabajoCantidadesFormset(request.POST, instance=trabajo)
         if formset.is_valid():
             formset.save()
+
     else:
         formset = TipoTrabajoCantidadesFormset(instance=trabajo)
     return render(request, 'formset_tipo_trabajo_cantidad.html', {'formset': formset})
+
+
+def alta_terminacion(request):
+    if request.method == 'POST':
+        form = TerminacionForm(request.POST)
+        if form.is_valid():
+            with transaction.atomic():
+                form.save()
+                form = TerminacionForm()
+    else:
+        form = TerminacionForm()
+    return render(request, 'alta_terminacion.html', context={'form': form})
+
 
 # TODO acá posiblemente sea necesario pasar una instancia de qué trabajo estamos hablando
 # TODO O sea: Luego del alta de un tipo de trabajo, que haya un botón que diga: Asociar material y me traiga acá

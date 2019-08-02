@@ -5,6 +5,8 @@
 
 {% block content %}
 <form method="post">
+    {% csrf_token %}
+    {{ form.non_field_errors }}
     {{ formset.management_form }}
     {% for form in formset %}
     <table>

@@ -383,9 +383,10 @@ class TipoTrabajoCantidades(models.Model):
 
     class Meta:
         constraints = [
-            models.UniqueConstraint(fields=['tipo_trabajo', 'cantidad', 'descuento', 'fecha_carga', 'flg_activo'],
+            models.UniqueConstraint(fields=['tipo_trabajo', 'cantidad', 'descuento', 'flg_activo'],
                                     name='unique_tipo_trabajo_cantidad'),
         ]
+
 
 class Terminacion(models.Model):
     TIPO_TERMINACION = (
@@ -397,13 +398,13 @@ class Terminacion(models.Model):
     terminacion_id = models.AutoField(primary_key=True)
     terminacion = models.CharField(max_length=100, blank=False, null=False, unique=True,
                                    error_messages={'unique': _('Esta terminación ya existe')})
-    terminacion_tiempo_seg = models.PositiveSmallIntegerField(blank=False, null=False)
+    terminacion_tiempo_seg = models.PositiveSmallIntegerField(blank=True, null=True)
     tipo_terminacion = models.CharField(choices=TIPO_TERMINACION, max_length=100, blank=False, null=False, )
     fecha_carga = models.DateTimeField(auto_now_add=True)
     flg_activo = models.BooleanField(blank=False, null=False)
 
     def clean(self):
-        if not self.terminacion.isalpha():
+        if any(tt.isdigit() for tt in self.terminacion):
             raise ValidationError({'terminacion': _('Sólo se permiten letras')})
 
 
@@ -867,6 +868,7 @@ class TipoTrabajoCantidadesForm(ModelForm):
 
 TipoTrabajoCantidadesFormset = inlineformset_factory(TipoTrabajo, TipoTrabajoCantidades, form=TipoTrabajoCantidadesForm,
                                                      extra=2)
+
 
 class TerminacionForm(ModelForm):
     class Meta:
