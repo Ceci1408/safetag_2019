@@ -5,7 +5,8 @@ from django.shortcuts import get_object_or_404
 from .models import ClientePfForm, ClientePjForm, TipoClienteForm, PaisForm, ProvinciaForm, LocalidadForm, \
     ProveedorForm, MaterialForm, TipoTrabajoForm, MedidaEstandarForm, DatoContactoForm, CantidadForm, TipoTrabajo, \
     ClientePf, ClientePj, Proveedor, ServicioTecnico, ColorImpresionForm, DomicilioForm, TipoTrabajoCantidadesFormset,\
-    TerminacionForm
+    TerminacionForm, MaquinaTerminacionForm, MaquinaPliegoForm, MaquinaTerminacionesFormset, MaquinaTerminacion,\
+    MaquinaPliego, MaquinaPliegoColorFormset
 
 # Create your views here.
 def index(request):
@@ -281,6 +282,55 @@ def alta_terminacion(request):
         form = TerminacionForm()
     return render(request, 'alta_terminacion.html', context={'form': form})
 
+
+def alta_maquina_terminacion(request):
+    if request.method == 'POST':
+        form = MaquinaTerminacionForm(request.POST)
+        if form.is_valid():
+            with transaction.atomic():
+                form.save()
+                form = MaquinaTerminacionForm()
+    else:
+        form = MaquinaTerminacionForm
+    return render(request, 'alta_maquina_terminacion.html', context={'form': form})
+
+
+def alta_maquina_pliego(request):
+    if request.method == 'POST':
+        form = MaquinaPliegoForm(request.POST)
+        if form.is_valid():
+            with transaction.atomic():
+                form.save()
+                form = MaquinaPliegoForm()
+    else:
+        form = MaquinaPliegoForm
+    return render(request, 'alta_maquina_pliego.html', context={'form': form})
+
+
+def maquina_terminaciones(request, maquina_id):
+    maquina_terminacion = MaquinaTerminacion.objects.get(pk=maquina_id)
+
+    if request.method == 'POST':
+        formset = MaquinaTerminacionesFormset(request.POST, instance=maquina_terminacion)
+        if formset.is_valid():
+            formset.save()
+
+    else:
+        formset = MaquinaTerminacionesFormset(instance=maquina_terminacion)
+    return render(request, 'formset_maquina_terminaciones.html', {'formset': formset})
+
+
+def maquina_color_impresion(request, maquina_id):
+    maquina_pliego = MaquinaPliego.objects.get(pk=maquina_id)
+
+    if request.method == 'POST':
+        formset = MaquinaPliegoColorFormset(request.POST, instance=maquina_pliego)
+        if formset.is_valid():
+            formset.save()
+
+    else:
+        formset = MaquinaPliegoColorFormset(instance=maquina_pliego)
+    return render(request, 'formset_maquina_color.html', {'formset': formset})
 
 # TODO acá posiblemente sea necesario pasar una instancia de qué trabajo estamos hablando
 # TODO O sea: Luego del alta de un tipo de trabajo, que haya un botón que diga: Asociar material y me traiga acá

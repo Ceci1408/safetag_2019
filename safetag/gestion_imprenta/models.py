@@ -407,6 +407,8 @@ class Terminacion(models.Model):
         if any(tt.isdigit() for tt in self.terminacion):
             raise ValidationError({'terminacion': _('Sólo se permiten letras')})
 
+    def __str__(self):
+        return self.terminacion
 
 class ColorImpresion(models.Model):
     color_impresion_id = models.AutoField(primary_key=True)
@@ -422,8 +424,8 @@ class ColorImpresion(models.Model):
 
 class Maquina(models.Model):
     maquina_id = models.AutoField(primary_key=True)
-    maquina_marca = models.CharField(max_length=50, blank=False, null=False)
-    maquina_descripcion = models.CharField(max_length=100, blank=False, null=False)
+    maquina_marca = models.CharField(max_length=50, blank=True, null=True)
+    maquina_descripcion = models.CharField(max_length=100, blank=True, null=True)
     fecha_carga = models.DateTimeField(auto_now_add=True)
     flg_activo = models.BooleanField(blank=False, null=False)
 
@@ -894,7 +896,7 @@ class ColorImpresionForm(ModelForm):
 class MaquinaTerminacionForm(ModelForm):
     class Meta:
         model = MaquinaTerminacion
-        exclude = ['fecha_carga', 'maquina_id']
+        exclude = ['fecha_carga', 'maquina_id', 'terminaciones']
         labels = {
             'flg_activo': _('Maquina activa')
         }
@@ -903,13 +905,17 @@ class MaquinaTerminacionForm(ModelForm):
 class MaquinaTerminacionTerminacionesForm(ModelForm):
     class Meta:
         model = MaquinaTerminacionTerminaciones
-        exclude = ['fecha_carga']
+        exclude = ['fecha_carga', 'maquina_terminacion']
         labels = {
-            'maquina_terminacion': _('Máquina de terminación'),
+            'terminacion': _('Terminación'),
             'cant_max': _('Cantidad máxima'),
             'cant_max_costo_dolar': _('Costo (u$s'),
             'flg_activo': _('Combinación de Máquina y Terminación activa')
         }
+
+
+MaquinaTerminacionesFormset = inlineformset_factory(MaquinaTerminacion, MaquinaTerminacionTerminaciones,\
+                                                    form=MaquinaTerminacionTerminacionesForm, extra=2)
 
 
 class MaquinaPliegoForm(ModelForm):
@@ -933,6 +939,9 @@ class MaquinaPliegoColorImpresionForm(ModelForm):
             'color_impresion': _('Color'),
             'costo_dolar': _('Costo impresión (u$s)')
         }
+
+MaquinaPliegoColorFormset = inlineformset_factory(MaquinaPliego, MaquinaPliegoColorImpresion, form=MaquinaPliegoColorImpresionForm,
+                                                  extra=2)
 
 # Esta es necesaria porque cuando llega una SP, de acuerdo al tipo de trabajo y al color requerido, el usuario va a
 # poder elegir con qué máquina realizará el trabajo

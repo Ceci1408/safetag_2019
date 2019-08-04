@@ -24,5 +24,8 @@ urlpatterns = [
     path('alta_color_impresion', views.alta_color_impresion, name='alta_color_impresion'),
     path('tipo_trabajo/<int:tipo_trabajo_id>/cantidad', views.tipo_trabajo_cantidad, name='tipo_trabajo_cantidad'),
     path('alta_terminacion', views.alta_terminacion, name='alta_terminacion'),
-
+    path('alta_maquina_terminacion', views.alta_maquina_terminacion, name='alta_maquina_terminacion'),
+    path('alta_maquina_pliego', views.alta_maquina_pliego, name='alta_maquina_pliego'),
+    path('maquina/<int:maquina_id>/terminacion', views.maquina_terminaciones, name='alta_maq_terminacion'),
+    path('maquina/<int:maquina_id>/color', views.maquina_color_impresion, name='maquina_color_impresion')
 ]
