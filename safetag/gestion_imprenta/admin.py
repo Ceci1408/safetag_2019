@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import TipoCliente, ClientePj, ClientePf, Domicilio, Pais, Provincia, Localidad, DatoContacto, \
+from .models import TipoCliente, Cliente, Domicilio, Pais, Provincia, Localidad, DatoContacto, \
     Proveedor, Material, TipoTrabajo, MedidaEstandar, Cantidad, TipoTrabajoCantidades, Terminacion, ColorImpresion, MaquinaTerminacion, MaquinaTerminacionTerminaciones, \
     MaquinaPliego, MaquinaPliegoColorImpresion,  Impresion, ServicioTecnico, TipoPago, ComprobanteCobro, ModoEnvio, \
     SolicitudPresupuesto, SolicitudPresupuestoTerminaciones, Presupuesto, PresupuestoTerminaciones, Estado, \
@@ -7,8 +7,7 @@ from .models import TipoCliente, ClientePj, ClientePf, Domicilio, Pais, Provinci
 
 # Register your models here.
 admin.site.register(TipoCliente)
-admin.site.register(ClientePf)                    
-admin.site.register(ClientePj) 
+admin.site.register(Cliente)
 admin.site.register(Domicilio)
 admin.site.register(Pais)
 admin.site.register(Provincia)

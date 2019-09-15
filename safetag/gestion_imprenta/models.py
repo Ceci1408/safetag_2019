@@ -28,28 +28,6 @@ class TipoCliente(models.Model):
 
 
 class Cliente(models.Model):
-    cliente_id = models.AutoField(primary_key=True)
-    cliente_ml_email = models.CharField(max_length=100, blank=True, null=True)
-    cliente_original_lista_dist = models.CharField(max_length=255, blank=True, null=True)
-    cliente_fecha_alta = models.DateTimeField(auto_now_add=True)
-    cliente_fecha_activo = models.DateField(blank=True, null=True)
-    cliente_flg_autenticado = models.BooleanField(blank=False, null=False, default=False)  # si es quien dice ser
-    tipo_cliente = models.ForeignKey(TipoCliente, on_delete=models.PROTECT)
-
-    class Meta:
-        abstract = True
-        ordering = ['cliente_id']
-
-    def dar_identificacion(self):
-        pass
-
-    def dar_nombre_razon_social(self):
-        pass
-
-    def dar_pk(self):
-        pass
-
-class ClientePf(Cliente):
     TIPO_DOC = (
         ('DNI', 'DNI'),
         ('CUIL', 'CUIL'),
@@ -57,10 +35,19 @@ class ClientePf(Cliente):
         ('LE', 'LE'),
         ('PASA', 'PASAPORTE')
     )
+
+    cliente_id = models.AutoField(primary_key=True)
+    cliente_ml_email = models.CharField(max_length=100, blank=True, null=True)
+    cliente_original_lista_dist = models.CharField(max_length=255, blank=True, null=True)
+    cliente_fecha_alta = models.DateTimeField(auto_now_add=True)
+    cliente_fecha_activo = models.DateField(blank=True, null=True)
+    cliente_flg_autenticado = models.BooleanField(blank=False, null=False, default=False)  # si es quien dice ser
+    tipo_cliente = models.ForeignKey(TipoCliente, on_delete=models.PROTECT)
     cliente_nombre = models.CharField(max_length=100, blank=False, null=False)
     cliente_apellido = models.CharField(max_length=100, blank=False, null=False)
     cliente_tipo_documento = models.CharField(choices=TIPO_DOC, max_length=10, null=False, blank=False)
     cliente_nro_documento = models.CharField(max_length=12, blank=False, null=False)
+    cliente_empresa_razon_social = models.CharField(max_length=250, blank=True, null=True)
 
     class Meta:
         constraints = [models.UniqueConstraint(fields=['cliente_tipo_documento', 'cliente_nro_documento'],
@@ -90,25 +77,6 @@ class ClientePf(Cliente):
     def dar_pk(self):
         return self.pk
 
-
-class ClientePj(Cliente):
-    cliente_razon_social = models.CharField(max_length=100, blank=True, null=True)
-    cliente_cuit = models.CharField(max_length=12, blank=False, null=False, unique=True,
-                                    error_messages={'unique': _('Este CUIT ya existe')})
-
-    def clean(self):
-        if not self.cliente_cuit.isdigit():
-            raise ValidationError({'cliente_cuit': _('Sólo se permiten números')})
-
-    def dar_identificacion(self):
-        return "CUIT -"+self.cliente_cuit
-
-    def dar_nombre_razon_social(self):
-        return self.cliente_razon_social
-
-    def dar_pk(self):
-        return self.pk
-
 # TODO hacer obligatorios localidad, provincia y pais. Para hacer geolocalización
 
 
@@ -124,17 +92,14 @@ class Domicilio(models.Model):
     pais = models.ForeignKey('Pais', models.PROTECT, blank=True, null=True)
     provincia = models.ForeignKey('Provincia', models.PROTECT, blank=True, null=True)
     localidad = models.ForeignKey('Localidad', models.PROTECT, blank=True, null=True)
-    cliente_pf = models.ForeignKey(ClientePf, models.PROTECT, blank=True, null=True)
-    cliente_pj = models.ForeignKey(ClientePj, models.PROTECT, blank=True, null=True)
+    cliente = models.ForeignKey(Cliente, models.PROTECT, blank=True, null=True)
     proveedor = models.ForeignKey('Proveedor', models.PROTECT, blank=True, null=True)
     fecha_carga = models.DateTimeField(auto_now_add=True)
     flg_activo = models.BooleanField(blank=False, null=False)
 
     class Meta:
         ordering = ['domicilio_id']
-        constraints = [models.UniqueConstraint(fields=['cliente_pf', 'domicilio_calle', 'domicilio_altura'], name='unique_domicilio_cliente_pf'),]
-        constraints = [models.UniqueConstraint(fields=['cliente_pj', 'domicilio_calle', 'domicilio_altura'],
-                                               name='unique_domicilio_cliente_pj'), ]
+        constraints = [models.UniqueConstraint(fields=['cliente', 'domicilio_calle', 'domicilio_altura'], name='unique_domicilio_cliente'),]
 
 
 class Pais(models.Model):
@@ -209,8 +174,7 @@ class DatoContacto(models.Model):
     dato_contacto_id = models.AutoField(primary_key=True)
     dato_contacto_valor = models.CharField(max_length=50)
     tipo_dato_contacto = models.CharField(choices=TIPO_DC, max_length=50, blank=False, null=False)
-    cliente_pf = models.ForeignKey(ClientePf, on_delete=models.CASCADE, blank=True, null=True)
-    cliente_pj = models.ForeignKey(ClientePj, on_delete=models.CASCADE, blank=True, null=True)
+    cliente = models.ForeignKey(Cliente, on_delete=models.CASCADE, blank=True, null=True)
     proveedor = models.ForeignKey('Proveedor', on_delete=models.CASCADE, blank=True, null=True)
     servicio_tecnico = models.ForeignKey('ServicioTecnico', on_delete=models.CASCADE, blank=True, null=True)
     dato_contacto_uso = models.CharField(choices=USO, max_length=50,blank=True, null=True)
@@ -222,10 +186,8 @@ class DatoContacto(models.Model):
 
     class Meta:
         constraints = [
-            models.UniqueConstraint(fields=['dato_contacto_valor', 'tipo_dato_contacto', 'cliente_pf'],
-                                    name='unique_dc_cliente_pf'),
-            models.UniqueConstraint(fields=['dato_contacto_valor', 'tipo_dato_contacto', 'cliente_pj'],
-                                    name='unique_dc_cliente_pj'),
+            models.UniqueConstraint(fields=['dato_contacto_valor', 'tipo_dato_contacto', 'cliente'],
+                                    name='unique_dc_cliente'),
         ]
 
     def clean(self):
@@ -265,10 +227,10 @@ class Proveedor(models.Model):
     fecha_carga = models.DateTimeField(auto_now_add=True)
     flg_activo = models.BooleanField(blank=False, null=False)
 
-    class Meta:
-        constraints = [
-            models.UniqueConstraint(fields=['proveedor_tipo_doc', 'proveedor_nro_doc'], name='unique_tipo_nro_doc_proveedor'),
-        ]
+    #class Meta:
+        # constraints = [
+        #     models.UniqueConstraint(fields=['proveedor_tipo_doc', 'proveedor_nro_doc'], name='unique_tipo_nro_doc_proveedor'),
+        # ]
 
     def clean(self):
         if self.proveedor_nro_doc is not None:
@@ -426,6 +388,7 @@ class Maquina(models.Model):
     maquina_id = models.AutoField(primary_key=True)
     maquina_marca = models.CharField(max_length=50, blank=True, null=True)
     maquina_descripcion = models.CharField(max_length=100, blank=True, null=True)
+    servicio_tecnico = models.ForeignKey('ServicioTecnico', on_delete=models.PROTECT, blank=True, null=True)
     fecha_carga = models.DateTimeField(auto_now_add=True)
     flg_activo = models.BooleanField(blank=False, null=False)
 
@@ -537,7 +500,7 @@ class ModoEnvio(models.Model):
     modo_envio_id = models.AutoField(primary_key=True)
     modo_envio = models.CharField(max_length=50, blank=False, null=False, unique=True,\
                                   error_messages={'unique': _('Este modo de envío ya existe')})
-    modo_envio_costo_adicional = models.DecimalField(max_digits=5, decimal_places=2, blank=False, null=False, default=0)
+    modo_envio_costo_adicional = models.DecimalField(max_digits=10, decimal_places=2, blank=False, null=False, default=0)
     modo_envio_hs_aprox = models.DecimalField(max_digits=5, decimal_places=2, blank=False, null=False, default=0)
     fecha_carga = models.DateTimeField(auto_now_add=True)
     flg_activo = models.BooleanField(blank=False, null=False)
@@ -561,11 +524,10 @@ class SolicitudPresupuesto(models.Model):
     solicitud_fecha_confirmacion = models.DateTimeField(blank=True, null=True)
     solicitud_express_flg = models.BooleanField()
     solicitud_doble_cara_impresion_flg = models.BooleanField()
-    solicitud_adjuntos = models.FileField()
+    solicitud_adjuntos = models.FileField(blank=True, null=True)
     solicitud_orientacion = models.CharField(choices=ORIENTACION, max_length=5, blank=True, null=True)
-    solicitud_email_enviado_flg = models.BooleanField()
-    cliente_pf = models.ForeignKey(ClientePf, on_delete=models.PROTECT, null=False)
-    cliente_pj = models.ForeignKey(ClientePj, on_delete=models.PROTECT, null=False)
+    solicitud_email_enviado_flg = models.BooleanField(default=False)
+    cliente = models.ForeignKey(Cliente, on_delete=models.PROTECT, null=False)
     tipo_trabajo = models.ForeignKey(TipoTrabajo, on_delete=models.PROTECT, null=False)
     color_impresion = models.ForeignKey(ColorImpresion, on_delete=models.PROTECT, null=False)
     material = models.ForeignKey(Material, on_delete=models.PROTECT, null=False)
@@ -686,9 +648,9 @@ class TipoClienteForm(ModelForm):
                         },
 
 
-class ClientePfForm(ModelForm):
+class ClienteForm(ModelForm):
     class Meta:
-        model = ClientePf
+        model = Cliente
         exclude = ['cliente_id', 'cliente_ml_email', 'cliente_original_lista_dist', 'cliente_fecha_alta',
                    'cliente_fecha_activo', 'cliente_flg_autenticado', ]
 
@@ -699,23 +661,22 @@ class ClientePfForm(ModelForm):
                         },
 
 
-class ClientePjForm(ModelForm):
+class ClientePublicoForm(ModelForm):
     class Meta:
-        model = ClientePj
+        model = Cliente
         exclude = ['cliente_id', 'cliente_ml_email', 'cliente_original_lista_dist', 'cliente_fecha_alta',
-                   'cliente_fecha_activo', 'cliente_flg_autenticado', ]
+                   'cliente_fecha_activo', 'cliente_flg_autenticado', 'tipo_cliente' ]
 
         error_message = {
                             NON_FIELD_ERRORS: {
                                 'unique_together': "%(field_labels)s del modelo %(model_name)s  no %(es)son %(único)s.",
                             }
                         },
-
 
 class DomicilioForm(ModelForm):
     class Meta:
         model = Domicilio
-        exclude = ['domicilio_id', 'cliente_pf', 'cliente_pj', 'proveedor', 'fecha_carga', 'domicilio_longitud',
+        exclude = ['domicilio_id', 'cliente', 'proveedor', 'fecha_carga', 'domicilio_longitud',
                    'domicilio_latitud', ]
         labels = {
             'domicilio_calle': _('Calle'),
@@ -762,7 +723,7 @@ class LocalidadForm(ModelForm):
 class DatoContactoForm(ModelForm):
     class Meta:
         model = DatoContacto
-        exclude = ['dato_contacto_id', 'cliente_pf', 'cliente_pj', 'proveedor', 'servicio_tecnico', 'fecha_carga']
+        exclude = ['dato_contacto_id', 'cliente', 'proveedor', 'servicio_tecnico', 'fecha_carga']
         labels = {
             'flg_activo': _('Activo'),
             'dato_contacto_valor':_('Dato (email/celular/teléfono'),
@@ -1003,7 +964,7 @@ class SolicitudPresupuestoForm(ModelForm):
     class Meta:
         model = SolicitudPresupuesto
         exclude = ['solicitud_id', 'solicitud_fecha', 'solicitud_fecha_confirmacion', 'solicitud_email_enviado_flg',
-                   'cliente_pf', 'cliente_pj']
+                   'cliente']
         labels = {
             'solicitud_disenio_flg': _('Requiere diseño previo'),
             'solicitud_trabajo_alto_mm': _('Alto (mm)'),

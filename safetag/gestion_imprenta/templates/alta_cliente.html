@@ -4,7 +4,7 @@
 {% endblock %}
 
 {% block content %}
-    <form action="{% url 'alta_cliente_pf' %}" method="post">
+    <form action="{% url 'alta_cliente' %}" method="post">
         {% csrf_token %}
          {{ form.non_field_errors }}
         <table>

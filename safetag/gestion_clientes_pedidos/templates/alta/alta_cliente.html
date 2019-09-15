@@ -1,8 +1,11 @@
 {% extends 'base.html' %}
-{% block title %} Alta Solicitud Presupuesto {% endblock %}
+{% block title %}
+    Alta Cliente
+{% endblock %}
 {% block content %}
-    <form action="{% url 'alta_sp' cliente.cliente_id %}" method="post">
+    <form action="{% url 'alta_cliente' %}" method="post">
         {% csrf_token %}
+        {{ form.non_field_errors }}
         <table>
             <thead>
                 <tr>
@@ -10,7 +13,7 @@
                 </tr>
             </thead>
             <tbody>
-                {% for f in form.visible_fields %}
+                {% for f in form %}
                 <tr>
                     <td>
                         {{ f.label_tag }}
@@ -28,6 +31,6 @@
                 {% endfor %}
             </tbody>
         </table>
-    <input type="submit" value="Continuar...">
+    <input type="submit" value="Guardar">
     </form>
 {% endblock %}

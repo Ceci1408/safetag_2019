@@ -2,9 +2,9 @@ from django.shortcuts import render
 from django.http import HttpResponse
 from django.db import transaction
 from django.shortcuts import get_object_or_404
-from .models import ClientePfForm, ClientePjForm, TipoClienteForm, PaisForm, ProvinciaForm, LocalidadForm, \
+from .models import ClienteForm, TipoClienteForm, PaisForm, ProvinciaForm, LocalidadForm, \
     ProveedorForm, MaterialForm, TipoTrabajoForm, MedidaEstandarForm, DatoContactoForm, CantidadForm, TipoTrabajo, \
-    ClientePf, ClientePj, Proveedor, ServicioTecnico, ColorImpresionForm, DomicilioForm, TipoTrabajoCantidadesFormset,\
+    Cliente, Proveedor, ServicioTecnico, ColorImpresionForm, DomicilioForm, TipoTrabajoCantidadesFormset,\
     TerminacionForm, MaquinaTerminacionForm, MaquinaPliegoForm, MaquinaTerminacionesFormset, MaquinaTerminacion,\
     MaquinaPliego, MaquinaPliegoColorFormset
 
@@ -33,28 +33,16 @@ def alta_tipo_cliente(request):
 # TODO: Hacer que las pick lists Domiclio, Provincia y País se correspondan.
 
 
-def alta_cliente_pf(request):
+def alta_cliente(request):
     if request.method == 'POST':
-        form_pf = ClientePfForm(request.POST)
+        form_pf = ClienteForm(request.POST)
 
         if form_pf.is_valid():
             with transaction.atomic():
                 form_pf.save()
     else:
-        form_pf = ClientePfForm()
-    return render(request, 'alta_cliente_pf.html', context={'form_pf': form_pf})
-
-
-def alta_cliente_pj(request):
-    if request.method == 'POST':
-        form_pj = ClientePjForm(request.POST)
-
-        if form_pj.is_valid():
-            with transaction.atomic():
-                form_pj.save()
-    else:
-        form_pj = ClientePjForm()
-    return render(request, 'alta_cliente_pj.html', context={'form_pj': form_pj})
+        form_pf = ClienteForm()
+    return render(request, 'alta_cliente.html', context={'form_pf': form_pf})
 
 
 def alta_pais(request):
@@ -94,20 +82,14 @@ def alta_localidad(request):
 
 
 def cliente_alta_dato_contacto(request, id_cliente):
-    try:
-        cliente = ClientePf.objects.get(pk=id_cliente)
-    except ClientePf.DoesNotExist:
-        cliente = ClientePj.objects.get(pk=id_cliente)
+    cliente = get_object_or_404(Cliente, id_cliente)
 
     if request.method == 'POST':
         form = DatoContactoForm(request.POST)
         if form.is_valid():
             with transaction.atomic():
                 form.save(commit=False)
-                if isinstance(cliente, ClientePf):
-                    form.cliente_pf = cliente
-                else:
-                    form.cliente_pj = cliente
+                form.cliente = cliente
                 form.save()
                 form = DatoContactoForm(instance=cliente)
     else:
@@ -222,20 +204,14 @@ def alta_color_impresion(request):
 
 
 def cliente_alta_domicilio(request, id_cliente):
-    try:
-        cliente = ClientePf.objects.get(pk=id_cliente)
-    except ClientePf.DoesNotExist:
-        cliente = ClientePj.objects.get(pk=id_cliente)
+    cliente = get_object_or_404(Cliente, id_cliente)
 
     if request.method == 'POST':
         form = DomicilioForm(request.POST)
         if form.is_valid():
             with transaction.atomic():
                 form.save(commit=False)
-                if isinstance(cliente, ClientePf):
-                    form.cliente_pf = cliente
-                else:
-                    form.cliente_pj = cliente
+                form.cliente = cliente
                 form.save()
                 form = DomicilioForm(instance=cliente)
     else:
