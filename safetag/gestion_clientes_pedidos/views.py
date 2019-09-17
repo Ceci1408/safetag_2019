@@ -2,7 +2,9 @@ from django.db import transaction
 from django.shortcuts import render, redirect
 from django.http import HttpResponse
 from .models import SolicitudPresupuesto, SolicitudPresupuestoForm, SolicitudPresupuestoTerminacionesForm, \
-    ClientePublicoForm, TipoCliente, Cliente
+    ClientePublicoForm, TipoCliente, Cliente, TipoTrabajo, Material, ColorImpresion, ModoEnvio, Terminacion, \
+    MedidaEstandar
+import json
 
 # Create your views here.
 
@@ -13,6 +15,7 @@ def index(request):
 
 def alta_solicitud_presupuesto(request, cliente_id):
     cliente = Cliente.objects.get(pk=cliente_id)
+
     if request.method == 'POST':
         form = SolicitudPresupuestoForm(request.POST)
         if form.is_valid():
@@ -28,9 +31,34 @@ def alta_solicitud_presupuesto(request, cliente_id):
         form = SolicitudPresupuestoForm(instance=cliente)
     return render(request, 'alta_solicitud_presupuesto.html', context={'cliente': cliente, 'form': form})
 
+
+def carga_material_ajax(request):
+    tipo_trabajo_id = request.GET.get('tipo_trabajo')
+    materiales = Material.objects.filter(tipotrabajo__tipo_trabajo_id=tipo_trabajo_id).order_by('material')
+    # Todos los trabajos aceptan los mismos colores de impresión. Si el día de mañana, un tipo de trabajo va a estar vinculado
+    # a un color particular, se agrega una relación N a N en TipoTrabajo y acá se hace como los
+    # anteriores...
+    colores = ColorImpresion.objects.all()
+    # Todos los trabajos aceptan los mismos modos de envío. Si el día de mañana, un tipo de trabajo va a estar vinculado
+    # a un modo de envío particular, se agrega una relación N a N en SolicitudPresupuesto y acá se hace como los
+    # anteriores...
+    modo_envio = ModoEnvio.objects.all()
+    medidas = MedidaEstandar.objects.filter(tipotrabajo__tipo_trabajo_id=tipo_trabajo_id).order_by('medida_estandar_id')
+
+    # return render(request, 'dropdown_lists/solicitud_presupuesto.html', {'materiales': materiales,
+    #                                                                      'colores': colores,
+    #                                                                      'modo_envio': modo_envio,
+    #                                                                      'medidas': medidas})
+    mat = []
+    for id, m in materiales:
+        mat.append((id, m))
+    return HttpResponse(json.dumps({'materiales': materiales, 'colores':colores}))
+
+
 # TODO: hacer un checkbox de todas las terminaciones posibles!
 def alta_solicitud_terminaciones(request, solicitud_id):
     solicitud = SolicitudPresupuesto.objects.get(pk=solicitud_id)
+    tipo_trabajo_elegido = solicitud.tipo_trabajo
 
     if request.method == 'POST':
         form = SolicitudPresupuestoTerminacionesForm(request.POST)

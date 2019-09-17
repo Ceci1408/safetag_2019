@@ -273,6 +273,31 @@ class Material(models.Model):
         else:
             return super(Material, self).unique_error_message(model_class, unique_check)
 
+    def __str__(self):
+        return self.material
+
+
+class Terminacion(models.Model):
+    TIPO_TERMINACION = (
+        ('ABROCHADO', 'Abrochado'),
+        ('CORTE', 'Corte'),
+        ('IMPRESION', 'Impresión'),
+        ('LAMINADO', 'Laminado'),
+    )
+    terminacion_id = models.AutoField(primary_key=True)
+    terminacion = models.CharField(max_length=100, blank=False, null=False, unique=True,
+                                   error_messages={'unique': _('Esta terminación ya existe')})
+    terminacion_tiempo_seg = models.PositiveSmallIntegerField(blank=True, null=True)
+    tipo_terminacion = models.CharField(choices=TIPO_TERMINACION, max_length=100, blank=False, null=False, )
+    fecha_carga = models.DateTimeField(auto_now_add=True)
+    flg_activo = models.BooleanField(blank=False, null=False)
+
+    def clean(self):
+        if any(tt.isdigit() for tt in self.terminacion):
+            raise ValidationError({'terminacion': _('Sólo se permiten letras')})
+
+    def __str__(self):
+        return self.terminacion
 
 class TipoTrabajo(models.Model):
     tipo_trabajo_id = models.AutoField(primary_key=True)
@@ -280,13 +305,13 @@ class TipoTrabajo(models.Model):
     tipo_trabajo_autoadhesivo_flg = models.BooleanField(blank=False, null=False)
     tipo_trabajo_doble_cara_flg = models.BooleanField(blank=False, null=False)
     tipo_trabajo_tiempo_aprox_hs = models.IntegerField(blank=True, null=True)
-    tipo_trabajo_demasia_trabajo_mm = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
+    tipo_trabajo_demasia_trabajo_mm = models.DecimalField(max_digits=5, decimal_places=2, blank=True, null=True)
     tipo_trabajo_circular_flg = models.BooleanField(blank=False, null=False)
     fecha_carga = models.DateTimeField(auto_now_add=True)
     flg_activo = models.BooleanField(blank=False, null=False)
     medidas = models.ManyToManyField('MedidaEstandar')
     cantidades = models.ManyToManyField('Cantidad', through='TipoTrabajoCantidades')
-    terminaciones = models.ManyToManyField('Terminacion'),
+    terminaciones = models.ManyToManyField(Terminacion),
     materiales = models.ManyToManyField(Material)
 
     def clean(self):
@@ -295,6 +320,9 @@ class TipoTrabajo(models.Model):
 
         if self.tipo_trabajo_autoadhesivo_flg and self.tipo_trabajo_doble_cara_flg:
             raise ValidationError({'tipo_trabajo_doble_cara_flg': _('Si el trabajo es autoadhesivo, no permite impresión doble cara')})
+
+    def __str__(self):
+        return self.tipo_trabajo
 
 
 class MedidaEstandar(models.Model):
@@ -350,28 +378,6 @@ class TipoTrabajoCantidades(models.Model):
         ]
 
 
-class Terminacion(models.Model):
-    TIPO_TERMINACION = (
-        ('ABROCHADO', 'Abrochado'),
-        ('CORTE', 'Corte'),
-        ('IMPRESION', 'Impresión'),
-        ('LAMINADO', 'Laminado'),
-    )
-    terminacion_id = models.AutoField(primary_key=True)
-    terminacion = models.CharField(max_length=100, blank=False, null=False, unique=True,
-                                   error_messages={'unique': _('Esta terminación ya existe')})
-    terminacion_tiempo_seg = models.PositiveSmallIntegerField(blank=True, null=True)
-    tipo_terminacion = models.CharField(choices=TIPO_TERMINACION, max_length=100, blank=False, null=False, )
-    fecha_carga = models.DateTimeField(auto_now_add=True)
-    flg_activo = models.BooleanField(blank=False, null=False)
-
-    def clean(self):
-        if any(tt.isdigit() for tt in self.terminacion):
-            raise ValidationError({'terminacion': _('Sólo se permiten letras')})
-
-    def __str__(self):
-        return self.terminacion
-
 class ColorImpresion(models.Model):
     color_impresion_id = models.AutoField(primary_key=True)
     color_impresion = models.CharField(max_length=50, null=False, blank=False, unique=True, \
@@ -382,6 +388,9 @@ class ColorImpresion(models.Model):
     def clean(self):
         if not self.color_impresion.isalpha():
             raise ValidationError({'color_impresion': _('Sólo se permiten letras')})
+
+    def __str__(self):
+        return self.color_impresion
 
 
 class Maquina(models.Model):
@@ -509,6 +518,9 @@ class ModoEnvio(models.Model):
         if not self.modo_envio.isalpha():
             raise ValidationError({'modo_envio': _('Sólo se permiten letras')})
 
+    def __str__(self):
+        return self.modo_envio
+
 # TODO Chequear el tema de los adjuntos
 class SolicitudPresupuesto(models.Model):
     ORIENTACION = (
@@ -518,8 +530,8 @@ class SolicitudPresupuesto(models.Model):
     solicitud_id = models.AutoField(primary_key=True)
     solicitud_fecha = models.DateTimeField(auto_now_add=True)
     solicitud_disenio_flg = models.BooleanField()
-    solicitud_trabajo_alto_mm = models.IntegerField(blank=False, null=False)
-    solicitud_trabajo_ancho_mm = models.IntegerField(blank=False, null=False)
+    #solicitud_trabajo_alto_mm = models.IntegerField(blank=False, null=False)
+    #solicitud_trabajo_ancho_mm = models.IntegerField(blank=False, null=False)
     solicitud_terminacion_flg = models.BooleanField()
     solicitud_fecha_confirmacion = models.DateTimeField(blank=True, null=True)
     solicitud_express_flg = models.BooleanField()
@@ -532,6 +544,7 @@ class SolicitudPresupuesto(models.Model):
     color_impresion = models.ForeignKey(ColorImpresion, on_delete=models.PROTECT, null=False)
     material = models.ForeignKey(Material, on_delete=models.PROTECT, null=False)
     envio = models.ForeignKey(ModoEnvio, on_delete=models.PROTECT, null=False)
+    medida_estandar = models.ForeignKey(MedidaEstandar, on_delete=models.PROTECT, null=False, default=1)
 
     def clean(self):
         if self.tipo_trabajo.tipo_trabajo_autoadhesivo_flg and self.solicitud_doble_cara_impresion_flg:
@@ -980,6 +993,12 @@ class SolicitudPresupuestoForm(ModelForm):
             'envio': _('Envío')
         }
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['material'].queryset = Material.objects.none()
+        self.fields['color_impresion'].queryset = ColorImpresion.objects.none()
+        self.fields['envio'].queryset = ModoEnvio.objects.none()
+        self.fields['medida_estandar'].queryset = MedidaEstandar.objects.none()
 
 class SolicitudPresupuestoTerminacionesForm(ModelForm):
     class Meta:
