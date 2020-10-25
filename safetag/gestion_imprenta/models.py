@@ -370,7 +370,7 @@ class TerminacionesMaquinas(models.Model):
     costo_dolar = models.DecimalField(max_digits=5, decimal_places=3, blank=False, null=False)
 
     class Meta:
-        db_table = '"terminaciones_maquinas"'
+        db_table = '"terminacion_maquinas"'
         constraints = [
             models.UniqueConstraint(fields=['maquina_terminacion', 'terminacion'],
                                     name='unique_maq_terminacion_terminaciones'),
