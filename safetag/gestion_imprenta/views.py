@@ -2,11 +2,7 @@ from django.shortcuts import render
 from django.http import HttpResponse
 from django.db import transaction
 from django.shortcuts import get_object_or_404
-from .models import ClienteForm, TipoClienteForm, PaisForm, ProvinciaForm, LocalidadForm, \
-    ProveedorForm, MaterialForm, TipoTrabajoForm, MedidaEstandarForm, DatoContactoForm, CantidadForm, TipoTrabajo, \
-    Cliente, Proveedor, ServicioTecnico, ColorImpresionForm, DomicilioForm, TipoTrabajoCantidadesFormset,\
-    TerminacionForm, MaquinaTerminacionForm, MaquinaPliegoForm, MaquinaTerminacionesFormset, MaquinaTerminacion,\
-    MaquinaPliego, MaquinaPliegoColorFormset
+from .models import Cliente, Proveedor, ServicioTecnico, MaquinaTerminacion,MaquinaPliego
 
 # Create your views here.
 def index(request):
@@ -17,7 +13,7 @@ def index(request):
     ALTA DE TODAS LAS ENTIDADES
 '''
 
-
+'''
 def alta_tipo_cliente(request):
     if request.method == 'POST':
         form = TipoClienteForm(request.POST)
@@ -28,7 +24,7 @@ def alta_tipo_cliente(request):
     else:
         form = TipoClienteForm()
     return render(request, 'alta_tipo_cliente.html', context={'form': form})
-
+'''
 # TODO: Agregar con JS el botón de agregar más domicilios.
 # TODO: Hacer que las pick lists Domiclio, Provincia y País se correspondan.
 
