@@ -404,20 +404,6 @@ class MaquinaPliegoColores(models.Model):
         ]
 
 
-class Impresion(models.Model):
-    tipo_trabajo = models.ForeignKey(Trabajo, on_delete=models.PROTECT)
-    color_impresion = models.ForeignKey(ColorImpresion, on_delete=models.PROTECT)
-    maquina_pliego = models.ForeignKey(MaquinaPliego, on_delete=models.PROTECT)
-    fecha_carga = models.DateTimeField(auto_now_add=True)
-    flg_activo = models.BooleanField(blank=False, null=False)
-
-    class Meta:
-        db_table='"impresion"'
-        constraints = [
-            models.UniqueConstraint(fields=['tipo_trabajo', 'color_impresion','maquina_pliego','fecha_carga', 'flg_activo'],
-                                    name='unique_impresion'),
-        ]
-
 
 class ServicioTecnico(models.Model):
     servicio_tecnico_id = models.AutoField(primary_key=True)
