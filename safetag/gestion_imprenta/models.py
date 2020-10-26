@@ -53,12 +53,12 @@ class TipoDomicilio(models.Model):
 class Domicilio(models.Model):
     domicilio_id = models.AutoField(primary_key=True)
     domicilio_calle = models.CharField(max_length=100, blank=False)
-    domicilio_altura = models.PositiveIntegerField()
+    domicilio_altura = models.PositiveIntegerField(blank=True, null=True)
     domicilio_latitud = models.DecimalField(max_digits=12, decimal_places=10, blank=True, null=True)
     domicilio_longitud = models.DecimalField(max_digits=12, decimal_places=10, blank=True, null=True)
-    pais = models.CharField(max_length=100, blank=False)
-    provincia = models.CharField(max_length=100, blank=False)
-    localidad = models.CharField(max_length=100, blank=False)
+    pais = models.CharField(max_length=25, blank=False)
+    provincia = models.CharField(max_length=25, blank=False)
+    localidad = models.CharField(max_length=25, blank=False)
     cliente = models.ForeignKey(Cliente, models.PROTECT, blank=True, null=True)
     proveedor = models.ForeignKey('Proveedor', models.PROTECT, blank=True, null=True)
     fecha_carga = models.DateTimeField(auto_now_add=True)
@@ -85,6 +85,16 @@ class Domicilio(models.Model):
         if not self.provincia.isalpha():
             raise ValidationError({'tipo_contacto_desc': _('Sólo se permiten letras')})
 
+    def unico_tipo_cuenta(self):
+        if self.proveedor is not None and self.servicio_tecnico is None or self.cliente is None:
+            return True
+        elif self.proveedor is None and self.servicio_tecnico is None and self.cliente is not None:
+            return True
+        elif self.proveedor is None and self.servicio_tecnico is not None and self.cliente is None:
+            return True
+        else:
+            return False
+
 
 class TipoContacto(models.Model):
     tipo_contacto_id = models.AutoField(primary_key=True)
@@ -103,7 +113,7 @@ class TipoContacto(models.Model):
 
 class Contacto(models.Model):
     contacto_id = models.AutoField(primary_key=True)
-    contacto_horario = models.CharField(max_length=100, blank=True, null=False)
+    contacto_horario = models.CharField(max_length=100, blank=True, null=True)
     contacto_comentarios = models.TextField(blank=True, null=True)
     dato_contacto_valor = models.CharField(max_length=50)
     tipo_dato_contacto = models.ForeignKey(to=TipoContacto, on_delete=models.PROTECT)
@@ -147,6 +157,16 @@ class Contacto(models.Model):
             if self.tipo_dato_contacto in ('CEL', 'TEL') and self.dato_contacto_valor.isdigit() and len(self.dato_contacto_valor) != 10:
                 raise ValidationError({'dato_contacto_valor': _('El dato de contacto no tiene los dígitos correctos. Ingrese sin el cero. ')})
 
+    def unico_tipo_cuenta(self):
+        if self.proveedor is not None and self.servicio_tecnico is None or self.cliente is None:
+            return True
+        elif self.proveedor is None and self.servicio_tecnico is None and self.cliente is not None:
+            return True
+        elif self.proveedor is None and self.servicio_tecnico is not None and self.cliente is None:
+            return True
+        else:
+            return False
+
 
 class Proveedor(models.Model):
     proveedor_id = models.AutoField(primary_key=True)
@@ -169,11 +189,11 @@ class Proveedor(models.Model):
 class Material(models.Model):
     material_id = models.AutoField(primary_key=True)
     material_descripcion = models.CharField(max_length=100, blank=False, null=False)
-    material_alto_mm = models.IntegerField(blank=False, null=False )
+    material_alto_mm = models.IntegerField(blank=False, null=False)
     material_ancho_mm = models.IntegerField(blank=False, null=False)
-    material_costo_dolar = models.DecimalField(max_digits=10, decimal_places=3, blank=False, null=False)
+    material_costo_dolar = models.DecimalField(max_digits=5, decimal_places=3, blank=False, null=False)
     material_gramaje_grs = models.IntegerField(blank=True, null=True)
-    material_demasia_hoja_mm = models.DecimalField(max_digits=10, decimal_places=2,  blank=False, null=False)
+    material_demasia_hoja_mm = models.IntegerField(blank=False, null=False)
     material_proveedor = models.ManyToManyField(Proveedor)
     fecha_carga = models.DateTimeField(auto_now_add=True)
     flg_activo = models.BooleanField(blank=False, null=False)
@@ -181,6 +201,9 @@ class Material(models.Model):
     def clean(self):
         if any(p.isdigit() for p in self.material):
             raise ValidationError({'material': _('Sólo se permiten letras')})
+
+        if self.material_costo_dolar < 0:
+            raise ValidationError({'material_costo_dolar': _('No se admiten números negativos')})
 
     class Meta:
         db_table = '"material"'
@@ -190,6 +213,9 @@ class Material(models.Model):
         constraints = [
             models.UniqueConstraint(fields=['material_descripcion', 'material_alto_mm', 'material_ancho_mm', 'material_gramaje_grs'], name='unique_material'),
         ]
+
+    def __str__(self):
+        return self.material_descripcion
 
 
 class TipoTerminacion(models.Model):
@@ -250,7 +276,6 @@ class Trabajo(models.Model):
     class Meta:
         db_table = '"tipo_trabajo"'
 
-
     def clean(self):
         if any(tt.isdigit() for tt in self.tipo_trabajo):
             raise ValidationError({'tipo_trabajo': _('Sólo se permiten letras')})
@@ -261,11 +286,17 @@ class Trabajo(models.Model):
     def __str__(self):
         return self.trabajo_descripcion
 
+    def adhesivo_sin_flg_doble_cara(self):
+        if self.autoadhesivo_flg and self.doble_cara_flg:
+            return False
+        else:
+            return True
+
 
 class MedidaEstandar(models.Model):
     medida_estandar_id = models.AutoField(primary_key=True)
-    medida_1_cm = models.DecimalField(max_digits=10, decimal_places=2)
-    medida_2_cm = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    medida_1_cm = models.DecimalField(max_digits=6, decimal_places=2)
+    medida_2_cm = models.DecimalField(max_digits=6, decimal_places=2, default=0)
     fecha_carga = models.DateTimeField(auto_now_add=True)
     flg_activo = models.BooleanField(blank=False, null=False)
 
@@ -290,8 +321,7 @@ class MedidaEstandar(models.Model):
 
 class Cantidad(models.Model):
     cantidad_id = models.AutoField(primary_key=True)
-    cantidad = models.IntegerField(blank=False, null=False, unique=True,
-                                   error_messages={'unique':'Esta cantidad ya existe'})
+    cantidad = models.IntegerField(blank=False, null=False, unique=True, error_messages={'unique':'Esta cantidad ya existe'})
     fecha_carga = models.DateTimeField(auto_now_add=True)
     flg_activo = models.BooleanField(blank=False, null=False)
 
@@ -314,7 +344,7 @@ class TrabajoCantidades(models.Model):
     flg_activo = models.BooleanField(blank=False, null=False)
 
     class Meta:
-        db_table='"trabajo_cantidades"'
+        db_table = '"tipo_trabajo_cantidades"'
         constraints = [
             models.UniqueConstraint(fields=['tipo_trabajo', 'cantidad', 'descuento', 'flg_activo'],
                                     name='unique_tipo_trabajo_cantidad'),
@@ -404,7 +434,6 @@ class MaquinaPliegoColores(models.Model):
         ]
 
 
-
 class ServicioTecnico(models.Model):
     servicio_tecnico_id = models.AutoField(primary_key=True)
     servicio_tecnico = models.CharField(max_length=100, blank=False, null=False)
@@ -424,14 +453,14 @@ class ServicioTecnico(models.Model):
 
 class PagoRecibido(models.Model):
     TIPO_PAGO = (
-        ('1', 'Efectivo'),
-        ('2', 'Transferencia Bancaria'),
-        ('3', 'Cheque'),
-        ('4', 'Mercado Pago')
+        ('efectivo', 'Efectivo'),
+        ('transf.bancaria', 'Transferencia Bancaria'),
+        ('cheque', 'Cheque'),
+        ('mercado pago', 'Mercado Pago')
     )
 
     pago_recibido_id = models.AutoField(primary_key=True)
-    pego_recibido_tipo = models.CharField(choices=TIPO_PAGO, max_length=5, blank=True, null=True)
+    pego_recibido_tipo = models.CharField(choices=TIPO_PAGO, max_length=25, blank=True, null=True)
     pago_recibido_fecha_cobro = models.DateTimeField(auto_now_add=True)
     pago_recibido_monto_cobro = models.DecimalField(max_digits=6, decimal_places=2, blank=False, null=False)
     presupuesto = models.ForeignKey('Presupuesto', on_delete=models.PROTECT)
@@ -464,8 +493,8 @@ class Envio(models.Model):
 # TODO Chequear el tema de los adjuntos
 class SolicitudPresupuesto(models.Model):
     ORIENTACION = (
-        ('V', 'Vertical'),
-        ('H', 'Horizontal')
+        ('vertical', 'Vertical'),
+        ('horizontal', 'Horizontal')
     )
     solicitud_id = models.AutoField(primary_key=True)
     solicitud_fecha = models.DateTimeField(auto_now_add=True)
@@ -485,7 +514,7 @@ class SolicitudPresupuesto(models.Model):
     envio = models.ForeignKey(Envio, on_delete=models.PROTECT, null=False)
     medida_estandar = models.ForeignKey(MedidaEstandar, on_delete=models.PROTECT, null=False)
     cantidad_estandar = models.ForeignKey(Cantidad, on_delete=models.PROTECT, null=False)
-    cantidad_hojas_estimadas = models.SmallIntegerField()
+    cantidad_hojas_estimadas = models.SmallIntegerField(blank=True, null=True)
     maquina_pliego_id = models.ForeignKey(MaquinaPliego, on_delete=models.PROTECT, blank=True, null=True)
     solicitud_nombre = models.CharField(max_length=25, blank=False, null=False)
     solicitud_apellido = models.CharField(max_length=25, blank=False, null=False)
@@ -503,7 +532,6 @@ class SolicitudPresupuesto(models.Model):
 
         if not self.solicitud_nombre.isalpha():
             raise ValidationError({'solicitud_nombre': _('Sólo se permiten letras')})
-
 
 
 class SolicitudPresupuestoTerminaciones(models.Model):

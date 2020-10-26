@@ -10,10 +10,26 @@
                 </tr>
             </thead>
             <tbody>
-                {% for f in form.visible_fields %}
+                {% for f in form_sp.visible_fields %}
                 <tr>
                     <td>
-                        {{ f.label_tag }}
+                        {{ f.label }}
+                    </td>
+                    <td>
+                        {{ f }}
+                    </td>
+                    <td>
+                        {{ f.errors }}
+                    </td>
+                    <td>
+                        {{ f.help_text }}
+                    </td>
+                </tr>
+                {% endfor %}
+                {% for f in form_spt.visible_fields %}
+                <tr>
+                    <td>
+                        {{ f.label }}
                     </td>
                     <td>
                         {{ f }}
@@ -35,7 +51,7 @@
       <script>
         $("#id_tipo_trabajo").change(function ()
         {
-          var url = $("#sp_form").attr("material_url");  // get the url of the `load_cities` view
+          var url = $("#form_sp").attr("material_url");  // get the url of the `load_cities` view
           var tipo_trabajo_id = $(this).val();  // get the selected country ID from the HTML input
 
           $.ajax({                       // initialize an AJAX request

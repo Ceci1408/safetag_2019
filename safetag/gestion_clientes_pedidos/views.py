@@ -2,7 +2,7 @@ from django.db import transaction
 from django.shortcuts import render, redirect
 from django.http import HttpResponse
 from .models import SolicitudPresupuesto, Cliente, Trabajo, Material, ColorImpresion, Envio, Terminacion, \
-    MedidaEstandar, SolicitudPresupuestoForm
+    MedidaEstandar, SolicitudPresupuestoForm, SolicitudPresupuestoTerminacionesForm
 import json
 
 # Create your views here.
@@ -14,20 +14,16 @@ def index(request):
 
 def alta_solicitud_presupuesto(request):
     if request.method == 'POST':
-        form = SolicitudPresupuestoForm(request.POST)
-        if form.is_valid():
-            with transaction.atomic():
-                '''solicitud = form.save(commit=False)
-                solicitud.cliente = cliente
-                solicitud.save()
-                if solicitud.solicitud_terminacion_flg:
-                    return redirect('alta_sp_term', solicitud_id=solicitud.pk)
-                else:
-                    return redirect('index_autogestion')'''
-                return HttpResponse('test')
+        form_sp = SolicitudPresupuestoForm(request.POST, prefix='sp')
+        form_spt = SolicitudPresupuestoTerminacionesForm(request.POST, prefix='spt')
+        if form_sp.is_valid() and form_spt.is_valid():
+            return HttpResponse('Thanks')
+
     else:
-        form = SolicitudPresupuestoForm()
-    return render(request, 'alta/alta_solicitud_presupuesto.html', context={'form': form})
+        form_sp = SolicitudPresupuestoForm(prefix='sp')
+        form_spt = SolicitudPresupuestoTerminacionesForm(prefix='spt')
+    return render(request, 'alta/alta_solicitud_presupuesto.html', context={'form_sp': form_sp,
+                                                                            'form_spt': form_spt})
 
 
 def carga_material_ajax(request):
@@ -72,7 +68,6 @@ def alta_solicitud_terminaciones(request, solicitud_id):
         form = SolicitudPresupuestoTerminacionesForm()
     return render(request, 'alta_solicitud_terminaciones.html', context={'solicitud': solicitud, 'form': form})
 
-'''
 def alta_cliente(request):
     if request.method == 'POST':
         form = ClienteForm(request.POST)
@@ -85,3 +80,4 @@ def alta_cliente(request):
     else:
         form = ClienteForm()
     return render(request, 'alta/alta_cliente.html', context={'form': form})
+'''

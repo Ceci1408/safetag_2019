@@ -1,16 +1,25 @@
 from django.test import TestCase
+from datetime import datetime
+from .models import Contacto, Cliente, Proveedor, ServicioTecnico, Domicilio, Trabajo
+
+cliente = Cliente(1, 'Cecilia', 'Barboza', datetime.now(), 'test@test.com')
+proveedor = Proveedor(1, 'Prov', 'comments', 'notes', datetime.now(), 1)
+servicio_tecnico = ServicioTecnico(1, 'serv tec', datetime.now(), 1)
 
 
-class TipoPersona(TestCase):
-    def setUp(self):
-        PersonaFisica.objects.create(persona_fisica_nombre="Cecilia", persona_fisica_apellido="Barboza",
-                                     persona_fisica_tipo_doc="DNI", persona_fisica_nro_documento=1524369,
-                                     persona_fisica_fecha_nac=fnd)
+class ContactoTest(TestCase):
+    def test_unique_contact(self):
+        contacto = Contacto(cliente=cliente, proveedor=proveedor, servicio_tecnico=servicio_tecnico)
+        self.assertIs(contacto.unico_tipo_cuenta(), False)
 
-    def test_check_mayor_edad(self):
-        pf = PersonaFisica.objects.get(persona_fisica_nro_documento=1524369)
-        self.assertTrue(pf.check_mayor_edad(), 'No es mayor de edad')
 
-    def test_check_nro_documento_len(self):
-        pf = PersonaFisica.objects.get(persona_fisica_nro_documento=1524369)
-        self.assertTrue(pf.check_nro_documento_len(), 'El DNI no tiene una longitud válida')
+class DomicilioTest(TestCase):
+    def test_unique_contact(self):
+        domicilio = Domicilio(cliente=cliente, proveedor=proveedor, servicio_tecnico=servicio_tecnico)
+        self.assertIs(domicilio.unico_tipo_cuenta(), False)
+
+
+class TrabajoTest(TestCase):
+    def test_autoadhesivo_flg_doble_cara(self):
+        trabajo = Trabajo(autoadhesivo_flg=1, doble_cara_flg=1)
+        self.assertIs(trabajo.adhesivo_sin_flg_doble_cara(), False)
