@@ -44,6 +44,22 @@ class SolicitudPresupuestoForm(ModelForm):
 
         localized_fields = '__all__'
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['material'].queryset = Material.objects.none()
+        self.fields['medida_estandar'].queryset = MedidaEstandar.objects.none()
+
+        if 'trabajo' in self.data:
+            try:
+                trabajo_id = int(self.data.get('trabajo'))
+                self.fields['material'].queryset = Material.objects.filter(trabajo_id=trabajo_id).order_by('material')
+                self.fields['medida_estandar'].queryset = MedidaEstandar.objects.filter(trabajo_id=trabajo_id)
+            except (ValueError, TypeError):
+                pass
+        elif self.instance.pk:
+            self.fields['material'].queryset = self.instance.trabajo.materiales_set.order_by('material')
+            self.fields['medida_estandar'].queryset = self.instance.trabajo.medidas_set.order_by('medida_estandar_id')
+
 
 class SolicitudPresupuestoTerminacionesForm(ModelForm):
     field_order = ['terminacion', 'doble_cara_flg']

@@ -1,6 +1,7 @@
 from django.db import transaction
 from django.shortcuts import render, redirect
-from django.http import HttpResponse
+from django.http import JsonResponse, HttpResponse
+from django.core import serializers
 from .models import SolicitudPresupuesto, Cliente, Trabajo, Material, ColorImpresion, Envio, Terminacion, \
     MedidaEstandar, SolicitudPresupuestoForm, SolicitudPresupuestoTerminacionesForm
 import json
@@ -26,31 +27,23 @@ def alta_solicitud_presupuesto(request):
                                                                             'form_spt': form_spt})
 
 
-def carga_material_ajax(request):
-    tipo_trabajo_id = request.GET.get('tipo_trabajo')
-    materiales = Material.objects.filter(tipotrabajo__tipo_trabajo_id=tipo_trabajo_id).order_by('material')
-    # Todos los trabajos aceptan los mismos colores de impresión. Si el día de mañana, un tipo de trabajo va a estar vinculado
-    # a un color particular, se agrega una relación N a N en TipoTrabajo y acá se hace como los
-    # anteriores...
-    colores = ColorImpresion.objects.all()
-    # Todos los trabajos aceptan los mismos modos de envío. Si el día de mañana, un tipo de trabajo va a estar vinculado
-    # a un modo de envío particular, se agrega una relación N a N en SolicitudPresupuesto y acá se hace como los
-    # anteriores...
-    modo_envio = Envio.objects.all()
-    medidas = MedidaEstandar.objects.filter(tipotrabajo__tipo_trabajo_id=tipo_trabajo_id).order_by('medida_estandar_id')
+def carga_material(request):
+    trabajo_id = request.GET.get('trabajo')
+    materiales = Material.objects.filter(trabajo__trabajo_id=trabajo_id).order_by('material_descripcion')
+    #values('pk', 'material_descripcion')
+    medidas = MedidaEstandar.objects.filter(trabajo__trabajo_id=trabajo_id).order_by('medida_estandar_id')
+    #    values('pk', 'medida_1_cm', 'medida_2_cm')
 
-    # return render(request, 'dropdown_lists/solicitud_presupuesto.html', {'materiales': materiales,
-    #                                                                      'colores': colores,
-    #                                                                      'modo_envio': modo_envio,
-    #                                                                      'medidas': medidas})
-    mat = []
-    for id, m in materiales:
-        mat.append((id, m))
-    return HttpResponse(json.dumps({'materiales': materiales, 'colores':colores}))
-'''
-'''
+    materiales_serial = serializers.serialize('json', materiales, fields=('material_descripcion'))
+    medidas_serial = serializers.serialize('json', medidas, fields=('medida_1_cm', 'medida_2_cm'))
 
-# TODO: hacer un checkbox de todas las terminaciones posibles!
+    json_response = JsonResponse({'materiales': materiales_serial,
+                                  'medidas': medidas_serial}, safe=False)
+    return json_response
+    #return render(request, 'dropdown_lists/medidas_ddl.html', {'materiales':materiales,
+    #                                                              'medidas': medidas})
+
+
 '''
 def alta_solicitud_terminaciones(request, solicitud_id):
     solicitud = SolicitudPresupuesto.objects.get(pk=solicitud_id)
@@ -76,7 +69,7 @@ def alta_cliente(request):
             with transaction.atomic():
                 #cli.save()
                 #return redirect('alta_sp', cliente_id=cli.pk)
-                return render(request, 'alta/alta_solicitud_presupuesto.html', context={''})
+                return render(request, 'alta/medidas_ddl.html', context={''})
     else:
         form = ClienteForm()
     return render(request, 'alta/alta_cliente.html', context={'form': form})
