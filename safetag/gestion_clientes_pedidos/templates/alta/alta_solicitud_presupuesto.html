@@ -2,54 +2,57 @@
 {% block title %} Alta Solicitud Presupuesto {% endblock %}
 
 {% block content %}
-    <form action="{% url 'alta_sp' %}" method="post" relaciones_url="{% url 'material_ddl' %}" id="sp_form">
+    <form action="{% url 'alta_sp' %}" method="post" relaciones_url="{% url 'material_ddl' %}" id="sp_form" enctype=multipart/form-data>
         {% csrf_token %}
-        <table>
-            <thead>
-                <tr>
-                    <th> Formulario de alta </th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for f in form_sp.visible_fields %}
-                <tr>
-                    <td>
-                        {{ f.label }}
-                    </td>
-                    <td>
-                        {{ f }}
-                    </td>
-                    <td>
-                        {{ f.errors }}
-                    </td>
-                    <td>
-                        {{ f.help_text }}
-                    </td>
-                </tr>
-                {% endfor %}
-                {% for f in form_spt.visible_fields %}
-                <tr>
-                    <td>
-                        {{ f.label }}
-                    </td>
-                    <td>
-                        {{ f }}
-                    </td>
-                    <td>
-                        {{ f.errors }}
-                    </td>
-                    <td>
-                        {{ f.help_text }}
-                    </td>
-                </tr>
-                {% endfor %}
-            </tbody>
+        <table id="tabla_solicitud_presupuesto">
+            {% for field in form_sp %}
+            <tr>
+                <td>
+                    {{ field.label_tag }}
+                </td>
+                <td>
+                    {{ field }}
+                </td>
+                <td>
+                    {{ field.errors }}
+                </td>
+                <td>
+                    {% if field.help_text %}
+                    <p class="help">{{ field.help_text|safe }}</p>
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
         </table>
-    <input type="submit" value="Continuar...">
+        <br>
+        <div id="seccion_terminaciones" style="display: none;">
+            {{ formset.management_form }}
+            <table id="tabla_terminaciones">
+                {% for form in formset %}
+                <tr id="fila_terminacion_{{forloop.counter0}}">
+                    <td>{{ form.terminacion.label}} </td>
+                    <td>{{ form.terminacion }} </td>
+                    <td>{{ form.doble_cara_flg.label }}</td>
+                    <td>{{ form.doble_cara_flg }}</td>
+                    <td>{{ form.comentarios.label }}</td>
+                    <td>{{ form.comentarios }}</td>
+                    <td> Quitar </td>
+                    <td> {{ form.DELETE }} </td>
+                </tr>
+                {% endfor %}
+            </table>
+            <div>
+                <button class="nueva_terminacion">Agregar otra terminación</button>
+            </div>
+        </div>
+    <br>
+    <input type="submit" value="Continuar..." id="submit_sp">
     </form>
+
 {% endblock %}
 
-    {% block javascript %}
+{% block javascript %}
+
     $("#id_sp-trabajo").change(function ()
     {
         var url = $("#sp_form").attr("relaciones_url");
@@ -66,8 +69,13 @@
             {
                 materiales = data.materiales;
                 medidas = data.medidas;
+                cantidades = data.cantidades;
+                terminaciones = data.terminaciones;
+
                 $("#id_sp-material").empty();
                 $("#id_sp-medida_estandar").empty();
+                $("#id_sp-cantidad_estandar").empty();
+                $( ".clase_terminacion" ).empty();
 
                 $.each(JSON.parse(materiales), function(key, value)
                 {
@@ -78,8 +86,38 @@
                 {
                     $("#id_sp-medida_estandar").append(new Option(value.fields.medida_1_cm+' x '+value.fields.medida_2_cm, value.pk));
                 });
+
+                $.each(JSON.parse(cantidades), function(key, value)
+                {
+                    $("#id_sp-cantidad_estandar").append(new Option(value.fields.cantidad, value.pk));
+                });
+
+                $.each(JSON.parse(terminaciones), function(key, value)
+                {
+                    $(".clase_terminacion").append(new Option(value.fields.terminacion, value.pk));
+                });
+
+
             }
         });
     });
-    {% endblock %}
 
+    $(".nueva_terminacion").click(function(e)
+        {
+            e.preventDefault();
+            agregar_terminaciones();
+        });
+
+    $("#id_sp-solicitud_terminacion_flg").change(function ()
+    {
+        if ($(this).is(':checked'))
+        {
+            $("#seccion_terminaciones").show();
+        }
+        else
+        {
+            $("#seccion_terminaciones").css('display', 'none')
+        }
+    });
+
+{% endblock %}

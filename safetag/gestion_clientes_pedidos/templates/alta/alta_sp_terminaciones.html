@@ -1,0 +1,22 @@
+{% extends 'base.html' %}
+{% block title %} Terminaciones {% endblock %}
+
+{% block content %}
+    {{ formset_spt.management_form }}
+    <form method="post">
+    <table id="spt_table">
+            {% for form in formset_spt %}
+                <tr>
+                    <td> {{form.terminacion.label }} {{ form.terminacion }}</td>
+                    <td> {{form.doble_cara_flg.label }} {{ form.doble_cara_flg }} </td>
+                    <td> {{form.comentarios.label }} {{ form.comentarios }} </td>
+                    <td>
+                        <button id="agregar_terminacion" type="button">Agregar terminación</button>
+                    </td>
+                </tr>
+            {% endfor %}
+        </table>
+
+    <input type="submit" value="Continuar..." id="submit_spt">
+    </form>
+{% endblock %}

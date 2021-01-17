@@ -1,11 +1,10 @@
-from django.db import models
-from django.forms import ModelForm
+from django.forms import ModelForm, modelformset_factory
 from django.core.exceptions import NON_FIELD_ERRORS
 from django.utils.translation import gettext_lazy as _
 
 from gestion_imprenta.models import SolicitudPresupuesto, Cliente, Trabajo, Material, \
-    ColorImpresion, Envio, Terminacion, MedidaEstandar, SolicitudPresupuestoTerminaciones
-
+    ColorImpresion, Envio, Terminacion, MedidaEstandar, SolicitudPresupuestoTerminaciones, Cantidad
+from django.forms import Select
 
 class SolicitudPresupuestoForm(ModelForm):
     field_order = ['trabajo', 'material', 'color_impresion', 'medida_estandar', 'solicitud_orientacion',
@@ -42,32 +41,27 @@ class SolicitudPresupuestoForm(ModelForm):
             'solicitud_email': _('Email para enviar presupuesto')
         }
 
+        help_texts = {
+            'solicitud_express_flg': _('Envío Express tiene costo adicional')
+        }
+
         localized_fields = '__all__'
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.fields['material'].queryset = Material.objects.none()
-        self.fields['medida_estandar'].queryset = MedidaEstandar.objects.none()
 
-        if 'trabajo' in self.data:
-            try:
-                trabajo_id = int(self.data.get('trabajo'))
-                self.fields['material'].queryset = Material.objects.filter(trabajo_id=trabajo_id).order_by('material')
-                self.fields['medida_estandar'].queryset = MedidaEstandar.objects.filter(trabajo_id=trabajo_id)
-            except (ValueError, TypeError):
-                pass
-        elif self.instance.pk:
-            self.fields['material'].queryset = self.instance.trabajo.materiales_set.order_by('material')
-            self.fields['medida_estandar'].queryset = self.instance.trabajo.medidas_set.order_by('medida_estandar_id')
-
-
-class SolicitudPresupuestoTerminacionesForm(ModelForm):
-    field_order = ['terminacion', 'doble_cara_flg']
-
-    class Meta:
-        model = SolicitudPresupuestoTerminaciones
-        exclude = ['solicitud', 'maquina_terminacion']
-        labels = {
-            'terminacion': _('Seleccione terminación'),
-            'doble_cara_flg': _('Requiere terminación doble faz')
-        }
+TerminacionesFormset = modelformset_factory(
+    SolicitudPresupuestoTerminaciones,
+    fields=('terminacion', 'doble_cara_flg', 'comentarios'),
+    extra=2,
+    labels={
+            'terminacion': _('Terminación'),
+            'doble_cara_flg': _('Aplica en ambas caras'),
+            'comentarios': _('Comentarios')
+        },
+    widgets={
+        'terminacion': Select(attrs={'class': 'clase_terminacion'}),
+    },
+    max_num=5,
+    validate_max=True,
+    validate_min=True,
+    can_delete=True
+)

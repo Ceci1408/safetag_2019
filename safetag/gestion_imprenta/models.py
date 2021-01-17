@@ -233,6 +233,9 @@ class TipoTerminacion(models.Model):
         if any(tt.isdigit() for tt in self.tipo_terminacion):
             raise ValidationError({'tipo_terminacion': _('Sólo se permiten letras')})
 
+    def __str__(self):
+        return self.tipo_terminacion
+
 
 class Terminacion(models.Model):
     terminacion_id = models.AutoField(primary_key=True)
@@ -255,6 +258,9 @@ class Terminacion(models.Model):
         if any(tt.isdigit() for tt in self.terminacion):
             raise ValidationError({'terminacion': _('Sólo se permiten letras')})
 
+    def __str__(self):
+        return self.terminacion
+
 
 class Trabajo(models.Model):
     trabajo_id = models.AutoField(primary_key=True)
@@ -268,10 +274,9 @@ class Trabajo(models.Model):
     flg_activo = models.BooleanField(blank=False, null=False)
     medidas = models.ManyToManyField('MedidaEstandar')
     cantidades = models.ManyToManyField('Cantidad', through='TrabajoCantidades')
-    terminaciones = models.ManyToManyField(Terminacion),
+    terminaciones = models.ManyToManyField(Terminacion, through='TrabajoTerminaciones', related_name='terminaciones')
     materiales = models.ManyToManyField(Material)
     maquinas_pliego = models.ManyToManyField('MaquinaPliego')
-
 
     class Meta:
         db_table = '"tipo_trabajo"'
@@ -291,6 +296,20 @@ class Trabajo(models.Model):
             return False
         else:
             return True
+
+
+class TrabajoTerminaciones(models.Model):
+    tipo_trabajo = models.ForeignKey(Trabajo, on_delete=models.PROTECT)
+    terminacion = models.ForeignKey(Terminacion, on_delete=models.PROTECT)
+    fecha_carga = models.DateTimeField(auto_now_add=True)
+    flg_activo = models.BooleanField(blank=False, null=False, default=1)
+
+    class Meta:
+        db_table = '"tipo_trabajo_terminaciones"'
+        constraints = [
+            models.UniqueConstraint(fields=['tipo_trabajo', 'terminacion', 'fecha_carga', 'flg_activo'],
+                                    name='unique_tipo_trabajo_terminacion'),
+        ]
 
 
 class MedidaEstandar(models.Model):
@@ -499,19 +518,19 @@ class SolicitudPresupuesto(models.Model):
     solicitud_id = models.AutoField(primary_key=True)
     solicitud_fecha = models.DateTimeField(auto_now_add=True)
     solicitud_disenio_flg = models.BooleanField()
-    solicitud_comentarios = models.TextField(max_length=255)
+    solicitud_comentarios = models.TextField(max_length=255, blank=True)
     solicitud_terminacion_flg = models.BooleanField()
     solicitud_express_flg = models.BooleanField()
     solicitud_doble_cara_impresion_flg = models.BooleanField()
     solicitud_adjunto_1 = models.FileField(blank=True, null=True)
     solicitud_adjunto_2 = models.FileField(blank=True, null=True)
     solicitud_adjunto_3 = models.FileField(blank=True, null=True)
-    solicitud_orientacion = models.CharField(choices=ORIENTACION, max_length=5, blank=True, null=True)
+    solicitud_orientacion = models.CharField(choices=ORIENTACION, max_length=25, blank=True, null=True)
     solicitud_email_enviado_flg = models.BooleanField(default=False)
     trabajo = models.ForeignKey(Trabajo, on_delete=models.PROTECT, null=False)
     color_impresion = models.ForeignKey(ColorImpresion, on_delete=models.PROTECT, null=False)
     material = models.ForeignKey(Material, on_delete=models.PROTECT, null=False)
-    envio = models.ForeignKey(Envio, on_delete=models.PROTECT, null=False)
+    envio = models.ForeignKey(Envio, on_delete=models.PROTECT, blank=True)
     medida_estandar = models.ForeignKey(MedidaEstandar, on_delete=models.PROTECT, null=False)
     cantidad_estandar = models.ForeignKey(Cantidad, on_delete=models.PROTECT, null=False)
     cantidad_hojas_estimadas = models.SmallIntegerField(blank=True, null=True)
@@ -539,6 +558,7 @@ class SolicitudPresupuestoTerminaciones(models.Model):
     terminacion = models.ForeignKey(Terminacion, on_delete=models.PROTECT)
     doble_cara_flg = models.BooleanField()
     maquina_terminacion = models.ForeignKey(MaquinaTerminacion, on_delete=models.PROTECT)
+    comentarios = models.CharField(max_length=255, blank=True)
 
     class Meta:
         db_table = '"solicitud_terminaciones"'
