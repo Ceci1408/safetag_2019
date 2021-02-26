@@ -1,13 +1,12 @@
 {% extends 'base.html' %}
 {% block title %}
-    Alta dato de contacto
+    Alta Cliente
 {% endblock %}
 
 {% block content %}
-{% include 'resumen_servicio_tecnico.html' %}
-    <form action="{% url 'st_alta_dc' service.servicio_tecnico_id %}" method="post">
+    <form action="{% url 'alta_cliente' %}" method="post">
         {% csrf_token %}
-        {{ form.non_field_errors }}
+         {{ form_cliente.non_field_errors }}
         <table>
             <thead>
                 <tr>
@@ -15,7 +14,7 @@
                 </tr>
             </thead>
             <tbody>
-                {% for f in form.visible_fields %}
+                {% for f in form_cliente.visible_fields %}
                 <tr>
                     <td>
                         {{ f.label_tag }}
@@ -33,6 +32,15 @@
                 {% endfor %}
             </tbody>
         </table>
+        </div>
     <input type="submit" value="Guardar!">
     </form>
+{% endblock %}
+
+{% block javascript %}
+    $(".nuevo_dato_contacto").click(function(e)
+        {
+            e.preventDefault();
+            agregar_dato_contacto();
+        });
 {% endblock %}

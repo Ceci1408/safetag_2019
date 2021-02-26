@@ -1,13 +1,12 @@
 {% extends 'base.html' %}
 {% block title %}
-    Alta domicilio
+    Alta Servicio Técnico
 {% endblock %}
 
 {% block content %}
-{% include 'resumen_cliente.html' %}
-    <form action="{% url 'cliente_alta_domicilio' cliente.cliente_id %}" method="post">
+    <form action="{% url 'alta_servicio_tecnico' %}" method="post">
         {% csrf_token %}
-        {{ form.non_field_errors }}
+         {{ form.non_field_errors }}
         <table>
             <thead>
                 <tr>
@@ -33,6 +32,15 @@
                 {% endfor %}
             </tbody>
         </table>
+        </div>
     <input type="submit" value="Guardar!">
     </form>
+{% endblock %}
+
+{% block javascript %}
+    $(".nuevo_dato_contacto").click(function(e)
+        {
+            e.preventDefault();
+            agregar_dato_contacto();
+        });
 {% endblock %}

@@ -24,7 +24,7 @@
             </tr>
             {% endfor %}
         </table>
-        <br>
+        <hr>
         <div id="seccion_terminaciones" style="display: none;">
             {{ formset.management_form }}
             <table id="tabla_terminaciones">
@@ -36,22 +36,47 @@
                     <td>{{ form.doble_cara_flg }}</td>
                     <td>{{ form.comentarios.label }}</td>
                     <td>{{ form.comentarios }}</td>
-                    <td> Quitar </td>
-                    <td> {{ form.DELETE }} </td>
                 </tr>
                 {% endfor %}
             </table>
             <div>
-                <button class="nueva_terminacion">Agregar otra terminación</button>
+                <button class="nueva_terminacion" onclick="agregar_terminaciones()">Agregar otra terminación</button>
             </div>
+        </div>
+        <hr>
+        <div id="seccion_contacto">
+            {{ formset_contacto.management_form }}
+            <table id="tabla_contactos">
+                {% for form in formset_contacto %}
+                <tr id="fila_contacto_{{forloop.counter0}}">
+                    <td>{{ form.prosp_nombre.label}} </td>
+                    <td>{{ form.prosp_nombre }} </td>
+                    <td>{{ form.prosp_apellido.label }}</td>
+                    <td>{{ form.prosp_apellido }}</td>
+                    <td>{{ form.tipo_dato_contacto.label }}</td>
+                    <td>{{ form.tipo_dato_contacto }}</td>
+                    <td>{{ form.dato_contacto_valor }}</td>
+                </tr>
+                {% endfor %}
+            </table>
         </div>
     <br>
     <input type="submit" value="Continuar..." id="submit_sp">
     </form>
 
+
 {% endblock %}
 
 {% block javascript %}
+    $(document).ready(function()
+    {
+        if ($("#id_sp-solicitud_terminacion_flg").is(':checked'))
+            {
+                $("#seccion_terminaciones").show();
+            }
+    }
+    )
+
 
     $("#id_sp-trabajo").change(function ()
     {
@@ -96,28 +121,19 @@
                 {
                     $(".clase_terminacion").append(new Option(value.fields.terminacion, value.pk));
                 });
-
-
             }
         });
     });
-
-    $(".nueva_terminacion").click(function(e)
-        {
-            e.preventDefault();
-            agregar_terminaciones();
-        });
-
     $("#id_sp-solicitud_terminacion_flg").change(function ()
-    {
-        if ($(this).is(':checked'))
         {
-            $("#seccion_terminaciones").show();
-        }
-        else
-        {
-            $("#seccion_terminaciones").css('display', 'none')
-        }
-    });
+            if ($(this).is(':checked'))
+            {
+                $("#seccion_terminaciones").show();
+            }
+            else
+            {
+                $("#seccion_terminaciones").css('display', 'none')
+            }
+        });
 
 {% endblock %}

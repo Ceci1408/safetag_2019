@@ -1,13 +1,10 @@
 from django.core import serializers
-from django.forms import inlineformset_factory
 from django.http import JsonResponse, HttpResponse
 from django.shortcuts import render, redirect
 
 from .models import Material, Cantidad, \
-    SolicitudPresupuestoForm, MedidaEstandar, SolicitudPresupuesto, SolicitudPresupuestoTerminaciones, Trabajo, \
-    TerminacionesFormset, Terminacion
+    SolicitudPresupuestoForm, MedidaEstandar, Trabajo, SpTerminacionesFormset, SpContactoFormset, Cliente
 
-# Create your views here.
 
 def index(request):
     return HttpResponse("Hello, world. You're at the polls index DESDE GESTION CLIENTES.")
@@ -16,46 +13,39 @@ def index(request):
 def alta_solicitud_presupuesto(request):
     if request.method == 'POST':
         form_sp = SolicitudPresupuestoForm(request.POST, request.FILES, prefix='sp')
-        formset = TerminacionesFormset(request.POST)
+        formset = SpTerminacionesFormset(request.POST, prefix='spt')
+        formset_contacto = SpContactoFormset(request.POST, prefix='spc')
 
-        if form_sp.is_valid() and formset.is_valid():
-            form_sp.save(commit=False)
+        if form_sp.is_valid() and formset.is_valid() and formset_contacto.is_valid():
+            contacto = None
+            for f in formset_contacto:
+                contacto = f.save(commit=False)
+                cliente_nuevo = Cliente()
+                cliente_nuevo.cliente_nombre = f.cleaned_data.get('prosp_nombre')
+                cliente_nuevo.cliente_apellido = f.cleaned_data.get('prosp_apellido')
+                cliente_nuevo.save()
+                contacto.cliente = cliente_nuevo
+                contacto.save()
 
-            for sp_terminacion in formset:
-                sp_terminacion.save(commit=False)
-                sp_terminacion.solicitud = form_sp
-                sp_terminacion.save()
-            return HttpResponse('yeah')
-        elif form_sp.is_valid():
-            #formulario_sp = form_sp.save()
-            pass
-            return HttpResponse('Thanks')
+            solicitud = form_sp.save(commit=False)
+            solicitud.contacto = contacto
+            solicitud.save()
+
+            for f in formset:
+                solicitud_terminacion = f.save(commit=False)
+                solicitud_terminacion.solicitud = solicitud
+                solicitud_terminacion.save()
+
+            return redirect(to='thankyou')
+
     else:
         form_sp = SolicitudPresupuestoForm(prefix='sp')
-        formset = TerminacionesFormset()
-    return render(request, 'alta/alta_solicitud_presupuesto.html', context={'form_sp': form_sp, 'formset': formset})
-'''
-        if form_sp.is_valid() and form_sp.cleaned_data.get('solicitud_terminacion_flg'):
-            solicitud = form_sp.save()
-            return redirect('alta_sp_terminaciones', solicitud_pk=solicitud.pk)
-'''
+        formset = SpTerminacionesFormset(prefix='spt')
+        formset_contacto = SpContactoFormset(prefix='spc')
 
-def alta_solicitud_terminaciones(request, solicitud_pk):
-    SolicitudesTerminacionesFormSet = inlineformset_factory(parent_model=SolicitudPresupuesto,
-                                                            model=SolicitudPresupuestoTerminaciones,
-                                                            exclude=('solicitud', 'maquina_terminacion'), extra=3,
-                                                            can_delete=True, max_num=5, validate_max=True)
-    solicitud = SolicitudPresupuesto.objects.get(pk=solicitud_pk)
-    #trabajos = Trabajo.objects.
-    if request.method == "POST":
-        formset_terminaciones = SolicitudesTerminacionesFormSet(request.POST, request.FILES, prefix='spt', instance=solicitud)
-
-        if formset_terminaciones.is_valid():
-            pass
-    else:
-        formset_terminaciones = SolicitudesTerminacionesFormSet(prefix='spt', instance=solicitud)
-
-    return render(request, 'alta/alta_sp_terminaciones.html', context={'formset_spt': formset_terminaciones})
+    return render(request, 'alta/alta_solicitud_presupuesto.html', context={'form_sp': form_sp,
+                                                                            'formset': formset,
+                                                                            'formset_contacto': formset_contacto})
 
 
 def carga_relaciones(request):
@@ -70,54 +60,12 @@ def carga_relaciones(request):
     cantidades_serial = serializers.serialize('json', cantidades, fields=('cantidad'))
     terminaciones = serializers.serialize('json', terminaciones, fields=('terminacion'))
 
-
     json_response = JsonResponse({'materiales': materiales_serial,
                                   'medidas': medidas_serial,
                                   'cantidades':cantidades_serial,
                                   'terminaciones': terminaciones}, safe=False)
     return json_response
 
-'''
-def alta_solicitud_terminaciones(request):
 
-
-    if request.method == 'POST':
-
-        if formset_terminaciones.is_valid():
-            print('holis')
-    else:
-        formset_terminaciones = SolicitudesTerminacionesFormSet(data)
-
-    return render(request, 'alta_sp_terminaciones.html', {'formset': formset_terminaciones})
-'''
-
-'''
-def alta_solicitud_terminaciones(request, solicitud_id):
-    solicitud = SolicitudPresupuesto.objects.get(pk=solicitud_id)
-    tipo_trabajo_elegido = solicitud.tipo_trabajo
-
-    if request.method == 'POST':
-        form = SolicitudPresupuestoTerminacionesForm(request.POST)
-        if form.is_valid():
-            with transaction.atomic():
-                sol_terminacion = form.save(commit=False)
-                sol_terminacion.solicitud = solicitud
-                sol_terminacion.save()
-                return redirect('index_autogestion')
-    else:
-        form = SolicitudPresupuestoTerminacionesForm()
-    return render(request, 'alta_solicitud_terminaciones.html', context={'solicitud': solicitud, 'form': form})
-
-def alta_cliente(request):
-    if request.method == 'POST':
-        form = ClienteForm(request.POST)
-
-        if form.is_valid():
-            with transaction.atomic():
-                #cli.save()
-                #return redirect('alta_sp', cliente_id=cli.pk)
-                return render(request, 'alta/medidas_ddl.html', context={''})
-    else:
-        form = ClienteForm()
-    return render(request, 'alta/alta_cliente.html', context={'form': form})
-'''
+def thankyoupage(request):
+    return render(request, 'alta/thankyou_page.html')

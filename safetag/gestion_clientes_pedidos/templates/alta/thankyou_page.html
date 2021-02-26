@@ -1,0 +1,15 @@
+{% extends 'base.html' %}
+{% block title %} ¡Gracias! {% endblock %}
+
+{% block content %}
+
+<div>
+    <div>¡Muchas gracias!</div>
+    <div> En menos de 48hs hábiles nos estaremos contactando con ud </div>
+</div>
+
+{% endblock %}
+
+{% block javascript %}
+    setTimeout(redirect, 2000);
+{% endblock %}

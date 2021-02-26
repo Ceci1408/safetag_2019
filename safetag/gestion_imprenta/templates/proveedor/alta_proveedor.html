@@ -30,39 +30,17 @@
                     </td>
                 </tr>
                 {% endfor %}
-
-             {{ form_dc.management_form }}
-                {% for form in form_dc %}
-                    {% for f in form.visible_fields %}
-                        <tr>
-                            <td>
-                                {{ f.label_tag }}
-                            </td>
-                            <td>
-                                {{ f }}
-                            </td>
-                            <td>
-                                {{ f.errors }}
-                            </td>
-                            <td>
-                                {{ f.help_text }}
-                            </td>
-                        </tr>
-                    {% endfor %}
-
-                {% endfor %}
-
             </tbody>
-            <div>
-                            <button>Agregar otro Formulario de Datos de contacto</button>
-                        </div>
         </table>
+        </div>
     <input type="submit" value="Guardar!">
     </form>
 {% endblock %}
 
 {% block javascript %}
-<script>
-
-</script>
+    $(".nuevo_dato_contacto").click(function(e)
+        {
+            e.preventDefault();
+            agregar_dato_contacto();
+        });
 {% endblock %}

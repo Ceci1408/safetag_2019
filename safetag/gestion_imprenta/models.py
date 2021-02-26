@@ -11,22 +11,22 @@ import random
 
 
 class Cliente(models.Model):
+    ORIGEN = (
+        ('formulario_presupuesto', 'Formulario de Presupuesto'),
+        ('manual', 'Manual'),
+    )
     cliente_id = models.AutoField(primary_key=True)
     cliente_nombre = models.CharField(max_length=100, blank=False, null=False)
     cliente_apellido = models.CharField(max_length=100, blank=False, null=False)
     cliente_fecha_alta = models.DateTimeField(auto_now_add=True)
-    cliente_email_contacto = models.EmailField(blank=False)
+    cliente_origen = models.CharField(choices=ORIGEN, blank=False, default='formulario_presupuesto', max_length=25)
 
     class Meta:
         db_table = '"cliente"'
         ordering = ['cliente_id']
         indexes = [
             models.Index(fields=['cliente_nombre', 'cliente_apellido'], name='nombre_apellido_idx'),
-            models.Index(fields=['cliente_nombre'], name='nombre_idx'),
-            models.Index(fields=['cliente_email_contacto'], name='email_idx')
-        ]
-        constraints = [
-            models.UniqueConstraint(fields=['cliente_email_contacto'], name='unique_email'),
+            models.Index(fields=['cliente_nombre'], name='nombre_idx')
         ]
 
     def clean(self):
@@ -38,6 +38,7 @@ class Cliente(models.Model):
 
 
 # TODO hacer obligatorios localidad, provincia y pais. Para hacer geolocalización
+'''
 class TipoDomicilio(models.Model):
     tipo_domicilio_id = models.AutoField(primary_key=True),
     tipo_domicilio_descripcion = models.CharField(max_length=25, blank=False, null=True)
@@ -48,9 +49,14 @@ class TipoDomicilio(models.Model):
             models.UniqueConstraint(
                 fields=['tipo_domicilio_descripcion'], name='unique_tipo_domicilio'),
         ]
-
+'''
 
 class Domicilio(models.Model):
+    TIPO_DOMICILIO= (
+        ('fiscal', 'Domicilio Fiscal'),
+        ('legal', 'Domicilio Legal'),
+    )
+
     domicilio_id = models.AutoField(primary_key=True)
     domicilio_calle = models.CharField(max_length=100, blank=False)
     domicilio_altura = models.PositiveIntegerField(blank=True, null=True)
@@ -64,6 +70,7 @@ class Domicilio(models.Model):
     fecha_carga = models.DateTimeField(auto_now_add=True)
     flg_activo = models.BooleanField(blank=False, null=False)
     servicio_tecnico = models.ForeignKey('ServicioTecnico', models.PROTECT, blank=True, null=True)
+    tipo_domicilio = models.CharField(choices=TIPO_DOMICILIO, null=False, max_length=25, default='fiscal')
 
     class Meta:
         db_table = '"domicilio"'
@@ -81,9 +88,7 @@ class Domicilio(models.Model):
 
     def clean(self):
         if not self.pais.isalpha():
-            raise ValidationError({'tipo_contacto_desc': _('Sólo se permiten letras')})
-        if not self.provincia.isalpha():
-            raise ValidationError({'tipo_contacto_desc': _('Sólo se permiten letras')})
+            raise ValidationError({'pais': _('Sólo se permiten letras')})
 
     def unico_tipo_cuenta(self):
         if self.proveedor is not None and self.servicio_tecnico is None or self.cliente is None:
@@ -110,19 +115,22 @@ class TipoContacto(models.Model):
         if not self.tipo_contacto_desc.isalpha():
             raise ValidationError({'tipo_contacto_desc': _('Sólo se permiten letras')})
 
+    def __str__(self):
+        return self.tipo_contacto_desc
+
 
 class Contacto(models.Model):
     contacto_id = models.AutoField(primary_key=True)
     contacto_horario = models.CharField(max_length=100, blank=True, null=True)
     contacto_comentarios = models.TextField(blank=True, null=True)
     dato_contacto_valor = models.CharField(max_length=50)
-    tipo_dato_contacto = models.ForeignKey(to=TipoContacto, on_delete=models.PROTECT)
+    tipo_dato_contacto = models.ForeignKey(to=TipoContacto, on_delete=models.PROTECT, default=1)
     cliente = models.ForeignKey(Cliente, on_delete=models.CASCADE, blank=True, null=True)
     proveedor = models.ForeignKey('Proveedor', on_delete=models.CASCADE, blank=True, null=True)
     servicio_tecnico = models.ForeignKey('ServicioTecnico', on_delete=models.CASCADE, blank=True, null=True)
-    dato_contacto_flg_no_llame = models.NullBooleanField()
+    dato_contacto_flg_no_llame = models.BooleanField(null=True)
     fecha_carga = models.DateTimeField(auto_now_add=True)
-    flg_activo = models.BooleanField(blank=False, null=False)
+    flg_activo = models.BooleanField(blank=False, null=False, default=True)
 
     class Meta:
         db_table = '"contacto"'
@@ -169,6 +177,11 @@ class Contacto(models.Model):
 
 
 class Proveedor(models.Model):
+    """
+    Como ya tenía proveedores, tuve que resetear el serial en proveedor_id desde PostgreSQL
+    ALTER SEQUENCE proveedor_proveedor_id_seq RESTART WITH 80;
+    """
+
     proveedor_id = models.AutoField(primary_key=True)
     proveedor_razon_social = models.CharField(max_length=100)
     proveedor_descripcion = models.CharField(max_length=200, blank=True, null=True)
@@ -454,6 +467,10 @@ class MaquinaPliegoColores(models.Model):
 
 
 class ServicioTecnico(models.Model):
+    """
+        Como ya tenía proveedores, tuve que resetear el serial en servicio_tecnico_id desde PostgreSQL
+        ALTER SEQUENCE gestion_imprenta_serviciotecnico_servicio_tecnico_id_seq RESTART WITH 10;
+    """
     servicio_tecnico_id = models.AutoField(primary_key=True)
     servicio_tecnico = models.CharField(max_length=100, blank=False, null=False)
     fecha_carga = models.DateTimeField(auto_now_add=True)
@@ -520,6 +537,7 @@ class SolicitudPresupuesto(models.Model):
     solicitud_disenio_flg = models.BooleanField()
     solicitud_comentarios = models.TextField(max_length=255, blank=True)
     solicitud_terminacion_flg = models.BooleanField()
+    solicitud_terminaciones = models.ManyToManyField(Terminacion, through='SolicitudPresupuestoTerminaciones')
     solicitud_express_flg = models.BooleanField()
     solicitud_doble_cara_impresion_flg = models.BooleanField()
     solicitud_adjunto_1 = models.FileField(blank=True, null=True)
@@ -535,9 +553,7 @@ class SolicitudPresupuesto(models.Model):
     cantidad_estandar = models.ForeignKey(Cantidad, on_delete=models.PROTECT, null=False)
     cantidad_hojas_estimadas = models.SmallIntegerField(blank=True, null=True)
     maquina_pliego_id = models.ForeignKey(MaquinaPliego, on_delete=models.PROTECT, blank=True, null=True)
-    solicitud_nombre = models.CharField(max_length=25, blank=False, null=False)
-    solicitud_apellido = models.CharField(max_length=25, blank=False, null=False)
-    solicitud_email = models.EmailField(max_length=25, blank=False, null=False)
+    contacto = models.ForeignKey(Contacto, on_delete=models.PROTECT, null=False)
 
     class Meta:
         db_table = '"solicitud_presupuesto"'
@@ -546,26 +562,17 @@ class SolicitudPresupuesto(models.Model):
         if self.trabajo.autoadhesivo_flg and self.solicitud_doble_cara_impresion_flg:
             raise ValidationError({'solicitud_doble_cara_impresion_flg': _('El tipo de trabajo es autoadhesivo y '
                                                                            'no se puede hacer impresión en ambas caras')})
-        if not self.solicitud_apellido.isalpha():
-            raise ValidationError({'solicitud_apellido': _('Sólo se permiten letras')})
-
-        if not self.solicitud_nombre.isalpha():
-            raise ValidationError({'solicitud_nombre': _('Sólo se permiten letras')})
 
 
 class SolicitudPresupuestoTerminaciones(models.Model):
     solicitud = models.ForeignKey(SolicitudPresupuesto, on_delete=models.PROTECT)
     terminacion = models.ForeignKey(Terminacion, on_delete=models.PROTECT)
-    doble_cara_flg = models.BooleanField()
-    maquina_terminacion = models.ForeignKey(MaquinaTerminacion, on_delete=models.PROTECT)
+    doble_cara_flg = models.BooleanField(null=True, default=False)
+    maquina_terminacion = models.ForeignKey(MaquinaTerminacion, on_delete=models.PROTECT, null=True)
     comentarios = models.CharField(max_length=255, blank=True)
 
     class Meta:
         db_table = '"solicitud_terminaciones"'
-        constraints = [
-            models.UniqueConstraint(fields=['solicitud', 'terminacion', 'maquina_terminacion'],
-                                    name='unique_solicitud_terminaciones'),
-        ]
 
 
 class Presupuesto(models.Model):
