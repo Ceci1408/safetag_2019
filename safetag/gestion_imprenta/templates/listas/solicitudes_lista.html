@@ -1,0 +1,37 @@
+{% extends "listas/base_lista.html" %}
+
+{% block content %}
+<h3>{{ titulo }}</h3>
+    <table class="table is-fullwidth">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Fecha </th>
+                <th>Trabajo</th>
+                <th>Express</th>
+                <th>Requiere diseño</th>
+                <th>Terminaciones solicitadas</th>
+                <th>Presupuestos armados</th>
+                <th>Más detalle</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for s in page_obj %}
+            <tr>
+                <td>{{ s.solicitud_id }}</td>
+                <td>{{ s.solicitud_fecha|date:"SHORT_DATE_FORMAT" }}</td>
+                <td>{{ s.trabajo }}</td>
+                <td>{{ s.solicitud_express_flg|yesno:"Urgente,Normal,Sin especificar"}}</td>
+                <td>{{ s.solicitud_disenio_flg|yesno:"Requiere diseño,Sin diseño"}}</td>
+                <td>{{ s.solicitudpresupuestoterminaciones_set.all|length }}</td>
+                <td>{{ s.presupuesto_set.all|length }}</td>
+                <td><a href="{% url 'detalle_solicitud'  s.pk %}">Más detalle</a></td>
+            </tr>
+            {% empty %}
+                <tr>
+                    <td>No hay solicitudes pendientes </td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+{% endblock %}

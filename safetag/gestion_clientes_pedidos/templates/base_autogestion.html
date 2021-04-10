@@ -1,0 +1,41 @@
+{% load static %}
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>{% block title %} Título por defecto {% endblock %}</title>
+    <link rel="stylesheet" type="text/css" href="{% static 'css/gestion_imprenta.css' %}">
+    {% block stylesheet %}
+    {% endblock %}
+</head>
+<body>
+    <header>
+      <nav aria-labelledby="primary-navigation">
+          <h3 id="primary-navigation">Panel de navegación</h3>
+        <ul>
+            <li><a href="{% url 'index_autogestion' %}">Inicio</a></li>
+            <li><a href="{% url 'alta_sp' %}">Nueva Solicitud</a></li>
+        </ul>
+      </nav>
+    </header>
+
+     {% block content %}
+      Test de bloque!!
+     {% endblock %}
+
+    {% block pagination %}
+
+    {% endblock %}
+
+     <script src="https://code.jquery.com/jquery-3.1.0.min.js"></script>
+
+     <script
+            type="text/javascript" src="{% static "js/funciones.js" %}">
+     </script>
+
+     <script>
+    {% block javascript %}
+
+    {% endblock %}
+    </script>
+</body>
+</html>

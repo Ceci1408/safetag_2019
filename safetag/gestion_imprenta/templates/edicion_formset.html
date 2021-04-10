@@ -1,0 +1,48 @@
+{% extends 'base.html' %}
+{% block title %}
+   {{ titulo }}
+{% endblock %}
+
+{% block content %}
+
+    {% block formulario %}
+    <form action="{% url nombre_vista id %}" method="post">
+        {% csrf_token %}
+        {{ formset.management_form }}
+
+        <table class="table is-fullwidth">
+        {% for form in formset %}
+            {{ form.id }}
+
+            {% if form.errors %}
+              <ul>
+                {% for error in form.errors %}
+                  <li>{{ error }}</li>
+                {% endfor %}
+              </ul>
+            {% endif %}
+            {% for hidden in form.hidden_fields %}
+                {{ hidden }}
+            {% endfor %}
+            <thead>
+                <tr>
+                    {% for field in form.visible_fields %}
+                    <th> {{ field.label_tag}}</th>
+                    {% endfor %}
+
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    {% for field in form.visible_fields %}
+                    <td>{{ field }}</td>
+                    {% endfor %}
+                </tr>
+            </tbody>
+            {% endfor %}
+        </table>
+    <input type="submit" value="Guardar!">
+    </form>
+    {% endblock formulario %}
+
+{% endblock content%}

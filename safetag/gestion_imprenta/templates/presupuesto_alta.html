@@ -1,0 +1,32 @@
+{% extends 'base.html' %}
+{% block title %}
+    {{ modelo }} - Nuevo
+{% endblock %}
+{% block content %}
+
+    {% block formulario %}
+    <form action="" method="post">
+        {% csrf_token %}
+        {{ form.non_field_errors }}
+        {% if disenio_incluido %}
+            <table class="table is-fullwidth">
+                {{ form.as_table }}
+            </table>
+            {% else %}
+                <table class="table is-fullwidth">
+                    <tr>
+                        <td>{{ form.margen_ganancia.label_tag }}</td>
+                        <td>{{ form.margen_ganancia }}</td>
+                        <td>{{ form.margen_ganancia.errors }}</td>
+                    </tr>
+                    <tr>
+                        <td>{{ form.cotizacion_dolar.label_tag }}</td>
+                        <td>{{ form.cotizacion_dolar }}</td>
+                        <td>{{ form.cotizacion_dolar.errors }}</td>
+                    </tr>
+                </table>
+            {% endif %}
+        <input type="submit" value="Guardar!">
+    </form>
+    {% endblock formulario %}
+{% endblock content%}

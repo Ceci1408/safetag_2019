@@ -1,0 +1,243 @@
+{% extends "base.html" %}
+{% load custom_tags %}
+
+{% block title %}
+    {{ titulo }}
+{% endblock %}
+
+{% block content %}
+<div class="solicitud_detalle">
+    <h3>Prioridad: {{ solicitud.solicitud_express_flg|yesno:"Urgente,Normal" }}</h3>
+    <table>
+        <tr>
+            <td>Fecha de solicitud</td>
+            <td>{{ solicitud.solicitud_fecha }}</td>
+        </tr>
+        <tr>
+            <td>Trabajo</td>
+            <td>{{ solicitud.trabajo }}</td>
+        </tr>
+        <tr>
+            <td>Material</td>
+            <td>{{ solicitud.material }}</td>
+        </tr>
+        <tr>
+            <td>Impresión</td>
+            <td>{{ solicitud.solicitud_doble_cara_impresion_flg|yesno:"Doble faz,Simple faz" }}</td>
+        </tr>
+        <tr>
+            <td>Terminaciones</td>
+            <td>{{ solicitud.solicitud_terminacion_flg|yesno:"Con terminaciones,Sin terminaciones"}}</td>
+        </tr>
+         <tr>
+            <td>Color</td>
+            <td>{{ solicitud.color_impresion}}</td>
+        </tr>
+        <tr>
+            <td>Medidas</td>
+            <td>{{ solicitud.medida_estandar }}</td>
+        </tr>
+        <tr>
+            <td>Orientación</td>
+            <td>{{ solicitud.solicitud_orientacion|capfirst }}</td>
+        </tr>
+        <tr>
+            <td>Cantidad</td>
+            <td>{{ solicitud.cantidad_estandar }}</td>
+        </tr>
+        <tr>
+            <td>Diseño</td>
+            <td>{{ solicitud.solicitud_disenio_flg|yesno:"Requiere diseño,Sin diseño" }}</td>
+        </tr>
+        <tr>
+            <td>Envío</td>
+            <td>{{ solicitud.envio }}</td>
+        </tr>
+        <tr>
+            <td>Comentarios</td>
+            <td>{{ solicitud.solicitud_comentarios }}</td>
+        </tr>
+        <tr>
+            <td>Máquina elegida para imprimir</td>
+            {% if solicitud.maquina_pliego is None and not solicitud.presupuesto_set.all|check_presupuesto_sin_aceptar %}
+                <td><a href="{% url 'solicitud_impresion'  solicitud.pk %}">Elegir máquina para imprimir</a></td>
+            {% else %}
+                <td>{{ solicitud.maquina_pliego }}</td>
+                {% if not solicitud.presupuesto_set.all|check_presupuesto_sin_aceptar %}
+                    <td><a href="{% url 'solicitud_impresion'  solicitud.pk %}">Cambiar máquina para imprimir</a></td>
+                {% endif %}
+            {% endif %}
+        </tr>
+    </table>
+</div>
+<br>
+{% if solicitud.solicitud_terminacion_flg %}
+<div>
+    <table class="solicitud_terminaciones">
+        <thead>
+            <tr>
+                <td>Terminación</td>
+                <td>Faz</td>
+                <td>Comentarios</td>
+                <td>Máquina elegida</td>
+            </tr>
+        </thead>
+        <tbody>
+        {% for t in solicitud.solicitudpresupuestoterminaciones_set.all %}
+            <tr>
+                <td>{{ t.terminacion }}</td>
+                <td>{{ t.doble_cara_flg|yesno:"Doble,Simple"}}</td>
+                <td>{{ t.comentarios }} </td>
+                {% if t.maquina_terminacion is None and not solicitud.presupuesto_set.all|check_presupuesto_sin_aceptar%}
+                    <td><a href="{% url 'solicitud_terminaciones'  solicitud.pk %}">Elegir máquina de terminación</a></td>
+                {% else %}
+                    <td>{{ t.maquina_terminacion }}</td>
+                {% endif %}
+            </tr>
+        {% empty %}
+        <tr>Sin terminaciones</tr>
+        {% endfor %}
+        </tbody>
+    </table>
+    {% if not solicitud.presupuesto_set.all|check_presupuesto_sin_aceptar %}
+        <div>
+            <a class="btn btn-primary" href="{% url 'solicitud_terminaciones' solicitud.pk %}">Editar máquinas para terminaciones</a>
+        </div>
+    {% endif %}
+</div>
+<br>
+{% endif %}
+<div class="solicitud_adjuntos">
+Acá van los adjuntos
+</div>
+<br>
+<div>
+    <table class="solicitud_contacto">
+        <thead>
+        <tr>
+            <th>Nombre y apellido del contacto</th>
+            <th>Contacto</th>
+            <th>Dato de contacto</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr>
+            <td>{{solicitud.contacto.cliente.cliente_nombre}} {{solicitud.contacto.cliente.cliente_apellido }}</td>
+            <td>{{solicitud.contacto.tipo_dato_contacto}}</td>
+            <td>{{solicitud.contacto.dato_contacto_valor}}</td>
+        </tr>
+        </tbody>
+    </table>
+</div>
+<br>
+<div>
+    <table class="solicitud_comentarios">
+        <thead>
+        <tr>
+            <th>Fecha</th>
+            <th>Usuario</th>
+            <th>Comentario</th>
+        </tr>
+        </thead>
+        <tbody>
+        {% for c in solicitud.comentario_set.all %}
+        <tr>
+            <td>
+                {{ c.fecha_comentario }}
+            </td>
+            <td>
+                {{ c.usuario }}
+            </td>
+            <td>
+                {{ c.comentario }}
+            </td>
+        </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+    <div>
+        <a class="btn btn-primary" href="{% url 'solicitud_comentarios' solicitud.pk %}">Agregar comentarios</a>
+    </div>
+</div>
+<br>
+<div>
+    {% with maq_impresion=solicitud.maquina_pliego terminaciones=solicitud.solicitudpresupuestoterminaciones_set.all %}
+
+    {% if maq_impresion is None %}
+        <td>Para generar el presupuesto debe elegir con cuál máquina imprimirá</td>
+    {% elif not solicitud.solicitud_terminacion_flg and terminaciones|check_maquina_terminacion %}
+        <td>Para generar el presupuesto todas las terminaciones deben tener una máquina de terminación</td>
+    {% else %}
+
+    <h5>Cantidad de presupuestos generados: {{ solicitud.presupuesto_set.all|length }}</h5>
+        <table class="presupuesto_estimado">
+            <tr>
+                <td>Cantidad de hojas estimadas</td>
+                <td>{{ cantidad_hojas }}</td>
+            </tr>
+            <tr>
+                <td>Costo Impresión (u$s)</td>
+                <td>{{ costo_impresion }}</td>
+            </tr>
+            <tr>
+                <td>Costo Material (u$s)</td>
+                <td>{{ costo_material }}</td>
+            </tr>
+            <tr>
+                <td>Costo de terminaciones (u$s)</td>
+                <td>{{ costo_terminaciones }}</td>
+            </tr>
+            <tr>
+                <td>Costo total sin diseño (u$s)</td>
+                <td>{{ costo_total_s_disenio }}</td>
+            </tr>
+        </table>
+        <table>
+            <thead>
+            <tr>
+                <th>Fecha creación</th>
+                <th>Presupuesto ID</th>
+                <th>Porcentaje de ganancia</th>
+                <th>Precio al cliente ($)</th>
+                <th>Último estado</th>
+                <th>Fecha último estado</th>
+
+            </tr>
+            </thead>
+            <tbody>
+            {% for p in solicitud.presupuesto_set.all %}
+            <tr>
+                <td>
+                    {{ p.fecha_carga }}
+                </td>
+                <td>
+                    <a class="btn btn-primary" href="{% url 'detalle_presupuesto' p.pk %}">{{ p.pk }}</a>
+                </td>
+                <td>
+                    {{ p.margen_ganancia }}
+                </td>
+                <td>
+                    {{ p.precio_cliente }}
+                </td>
+                <td>
+                    {{ p.ultimo_estado.estado.estado_descripcion }}
+                </td>
+                <td>
+                    {{ p.ultimo_estado.fecha_cambio_estado|date }}
+                </td>
+             </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+        {% if not solicitud.presupuesto_set.all|check_presupuesto_sin_aceptar %}
+            <div>
+                <a class="btn btn-primary" href="{% url 'solicitud_presupuesto' solicitud.pk %}">Agregar presupuesto</a>
+            </div>
+        {% endif %}
+    {% endif %}
+    {% endwith %}
+
+</div>
+<br>
+
+{% endblock %}

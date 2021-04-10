@@ -1,0 +1,143 @@
+{% extends "base.html" %}
+{% load custom_tags %}
+
+{% block title %}
+    {{ titulo }}
+{% endblock %}
+
+{% block content %}
+<div>
+    {% include "resumen/resumen_trabajo.html" %}
+</div>
+<br>
+<div>
+    <table class="trabajo_medidas">
+        <thead>
+            <tr>
+                <th>Medida 1 (cm)</th>
+                <th>Medida 2 (cm)</th>
+                <th>Medida circular</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for m in trabajo.medidas.all %}
+                {% if m.flg_activo %}
+                <tr>
+                    <td>{{ m.medida_1_cm }}</td>
+                    <td>{{ m.medida_2_cm }}</td>
+                    <td>{{ m.medida_flg_circular|yesno:"Si,No" }}</td>
+                </tr>
+                {% endif %}
+            {% empty %}
+            <tr>
+                <td>Sin medidas cargadas</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+<br>
+<div>
+    <table class="trabajo_cantidades">
+        <thead>
+            <tr>
+                <th>Cantidad</th>
+                <th>Descuento</th>
+                <th>Fecha de carga</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for c in trabajo.trabajocantidades_set.all %}
+                {% if c.flg_activo and c.cantidad.flg_activo %}
+                    <tr>
+                        <td>{{ c.cantidad }}</td>
+                        <td>{{ c.descuento }}</td>
+                        <td>{{ c.fecha_carga }}</td>
+                    </tr>
+                {% endif %}
+            {% empty %}
+            <tr>
+                <td>Sin cantidades</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+<br>
+<div>
+    <table class="trabajo_terminaciones">
+        <thead>
+            <tr>
+                <th>Tipo terminacion</th>
+                <th>Terminacion</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for t in trabajo.trabajoterminaciones_set.all %}
+                {% if t.flg_activo and t.terminacion.flg_activo %}
+                <tr>
+                    <td>{{ t.terminacion.tipo_terminacion }}</td>
+                    <td>{{ t.terminacion }}</td>
+                </tr>
+                {% endif %}
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+<br>
+<div>
+    <table class="trabajo_materiales">
+        <thead>
+            <tr>
+                <th>Material</th>
+                <th>Gramaje</th>
+                <th>Alto (mm)</th>
+                <th>Ancho (mm)</th>
+                <th>Costo (u$s)</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for m in trabajo.materiales.all %}
+                {% if m.flg_activo %}
+                    <tr>
+                        <td>{{ m.material_descripcion }}</td>
+                        <td>{{ m.material_gramaje_grs }}</td>
+                        <td>{{ m.material_alto_mm }}</td>
+                        <td>{{ m.material_ancho_mm }}</td>
+                        <td>{{ m.material_costo_dolar }}</td>
+                    </tr>
+                {% endif %}
+            {% empty %}
+            <tr>
+                <td>Sin materiales cargados</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+<br>
+<div>
+    <table class="trabajo_maquinas">
+        <thead>
+            <tr>
+                <th>Marca</th>
+                <th>Descripción</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for m in trabajo.maquinas_pliego.all %}
+                {% if m.flg_activo %}
+                    <tr>
+                        <td>{{ m.maquina_marca }}</td>
+                        <td>{{ m.maquina_descripcion }}</td>
+                    </tr>
+                {% endif %}
+            {% empty %}
+            <tr>
+                <td>Sin máquinas cargadas</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

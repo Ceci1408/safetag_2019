@@ -1,13 +1,9 @@
-from django.core.exceptions import NON_FIELD_ERRORS, ValidationError
+from django.core.exceptions import ValidationError
+from django.core.validators import validate_email, validate_integer
 from django.db import models
 from django.contrib.auth.models import User
-from django.forms import ModelForm
-from django import forms
-from django.conf import settings
-from django.forms.models import inlineformset_factory, modelformset_factory
 from django.utils.translation import gettext_lazy as _
-import re
-import random
+from math import pow, pi, ceil, floor
 
 
 class Cliente(models.Model):
@@ -19,7 +15,7 @@ class Cliente(models.Model):
     cliente_nombre = models.CharField(max_length=100, blank=False, null=False)
     cliente_apellido = models.CharField(max_length=100, blank=False, null=False)
     cliente_fecha_alta = models.DateTimeField(auto_now_add=True)
-    cliente_origen = models.CharField(choices=ORIGEN, blank=False, default='formulario_presupuesto', max_length=25)
+    cliente_origen = models.CharField(choices=ORIGEN, blank=False, default='manual', max_length=25)
 
     class Meta:
         db_table = '"cliente"'
@@ -28,6 +24,7 @@ class Cliente(models.Model):
             models.Index(fields=['cliente_nombre', 'cliente_apellido'], name='nombre_apellido_idx'),
             models.Index(fields=['cliente_nombre'], name='nombre_idx')
         ]
+        permissions = [('elegir_origen', 'Elegir origen del cliente')]
 
     def clean(self):
         if not self.cliente_nombre.isalpha():
@@ -37,22 +34,8 @@ class Cliente(models.Model):
             raise ValidationError({'cliente_apellido': _('Sólo se permiten letras')})
 
 
-# TODO hacer obligatorios localidad, provincia y pais. Para hacer geolocalización
-'''
-class TipoDomicilio(models.Model):
-    tipo_domicilio_id = models.AutoField(primary_key=True),
-    tipo_domicilio_descripcion = models.CharField(max_length=25, blank=False, null=True)
-
-    class Meta:
-        db_table = '"tipo_domicilio"'
-        constraints = [
-            models.UniqueConstraint(
-                fields=['tipo_domicilio_descripcion'], name='unique_tipo_domicilio'),
-        ]
-'''
-
 class Domicilio(models.Model):
-    TIPO_DOMICILIO= (
+    TIPO_DOMICILIO = (
         ('fiscal', 'Domicilio Fiscal'),
         ('legal', 'Domicilio Legal'),
     )
@@ -79,12 +62,15 @@ class Domicilio(models.Model):
         ]
         constraints = [
             models.UniqueConstraint(
-                fields=['cliente', 'domicilio_calle', 'domicilio_altura', 'localidad', 'provincia','pais'],
+                fields=['cliente', 'domicilio_calle', 'domicilio_altura', 'localidad', 'provincia', 'pais'],
                 name='unique_domicilio_cliente'),
             models.UniqueConstraint(
-                fields=['proveedor', 'domicilio_calle', 'domicilio_altura', 'localidad', 'provincia','pais'],
+                fields=['proveedor', 'domicilio_calle', 'domicilio_altura', 'localidad', 'provincia', 'pais'],
                 name='unique_domicilio_proveedor')
         ]
+
+        permissions = [('agregar_laitud', 'Agregar Latitud'),
+                       ('agregar_longitud', 'Agregar Longitud')]
 
     def clean(self):
         if not self.pais.isalpha():
@@ -101,34 +87,21 @@ class Domicilio(models.Model):
             return False
 
 
-class TipoContacto(models.Model):
-    tipo_contacto_id = models.AutoField(primary_key=True)
-    tipo_contacto_desc = models.CharField(max_length=25, blank=False, null=False)
-
-    class Meta:
-        db_table = '"tipo_contacto"'
-        constraints = [
-            models.UniqueConstraint(
-                fields=['tipo_contacto_desc'], name='tipo_conacto_unique')]
-
-    def clean(self):
-        if not self.tipo_contacto_desc.isalpha():
-            raise ValidationError({'tipo_contacto_desc': _('Sólo se permiten letras')})
-
-    def __str__(self):
-        return self.tipo_contacto_desc
-
-
 class Contacto(models.Model):
+    TIPO_CONTACTO = (
+        ('EMAIL', 'Email'),
+        ('TEL_CEL', 'Tel / Cel')
+    )
+
     contacto_id = models.AutoField(primary_key=True)
     contacto_horario = models.CharField(max_length=100, blank=True, null=True)
     contacto_comentarios = models.TextField(blank=True, null=True)
     dato_contacto_valor = models.CharField(max_length=50)
-    tipo_dato_contacto = models.ForeignKey(to=TipoContacto, on_delete=models.PROTECT, default=1)
+    tipo_dato_contacto = models.CharField(choices=TIPO_CONTACTO, max_length=25, default='EMAIL')
     cliente = models.ForeignKey(Cliente, on_delete=models.CASCADE, blank=True, null=True)
     proveedor = models.ForeignKey('Proveedor', on_delete=models.CASCADE, blank=True, null=True)
     servicio_tecnico = models.ForeignKey('ServicioTecnico', on_delete=models.CASCADE, blank=True, null=True)
-    dato_contacto_flg_no_llame = models.BooleanField(null=True)
+    dato_contacto_flg_no_llame = models.BooleanField(null=True, blank=False)
     fecha_carga = models.DateTimeField(auto_now_add=True)
     flg_activo = models.BooleanField(blank=False, null=False, default=True)
 
@@ -147,23 +120,25 @@ class Contacto(models.Model):
         ]
 
     def clean(self):
-        pattern = '[^@]+@[^@]+\.[^@]+'
+        if self.tipo_dato_contacto == 'EMAIL':
+            try:
+                validate_email(self.dato_contacto_valor)
+                email_valido = True
+            except ValidationError:
+                email_valido = False
 
-        if self.dato_contacto_valor is not None:
-            result = re.match(pattern, self.dato_contacto_valor)
+            if not email_valido:
+                raise ValidationError({'dato_contacto_valor': _('El dato de contacto no tiene el formato esperado')})
 
-            if self.tipo_dato_contacto == 'EMAIL' and not result:
-                raise ValidationError({'dato_contacto_valor': _('El dato de contacto no tiene el formato necesario')})
+        if self.tipo_dato_contacto == 'TEL_CEL':
+            try:
+                validate_integer(self.dato_contacto_valor)
+                numero_valido = True
+            except ValidationError:
+                numero_valido = False
 
-            if self.tipo_dato_contacto == 'EMAIL' and result and self.dato_contacto_flg_no_llame is not None:
-                raise ValidationError({'dato_contacto_flg_no_llame': _('No use el flag. Aplica sólo para teléfonos')})
-
-            if self.tipo_dato_contacto in ('CEL', 'TEL') and not self.dato_contacto_valor.isdigit():
-                raise ValidationError({'dato_contacto_valor': _('El dato de contacto no tiene el formato necesario')})
-
-            #TODO este no se si sea necesario
-            if self.tipo_dato_contacto in ('CEL', 'TEL') and self.dato_contacto_valor.isdigit() and len(self.dato_contacto_valor) != 10:
-                raise ValidationError({'dato_contacto_valor': _('El dato de contacto no tiene los dígitos correctos. Ingrese sin el cero. ')})
+            if not numero_valido:
+                raise ValidationError({'dato_contacto_valor': _('El dato de contacto no tiene el formato esperado')})
 
     def unico_tipo_cuenta(self):
         if self.proveedor is not None and self.servicio_tecnico is None or self.cliente is None:
@@ -198,6 +173,9 @@ class Proveedor(models.Model):
              models.UniqueConstraint(fields=['proveedor_razon_social'], name='unique_proveedor'),
          ]
 
+    def __str__(self):
+        return self.proveedor_razon_social
+
 
 class Material(models.Model):
     material_id = models.AutoField(primary_key=True)
@@ -209,11 +187,11 @@ class Material(models.Model):
     material_demasia_hoja_mm = models.IntegerField(blank=False, null=False)
     material_proveedor = models.ManyToManyField(Proveedor)
     fecha_carga = models.DateTimeField(auto_now_add=True)
-    flg_activo = models.BooleanField(blank=False, null=False)
+    flg_activo = models.BooleanField(blank=False, null=False, default=False)
 
     def clean(self):
-        if any(p.isdigit() for p in self.material):
-            raise ValidationError({'material': _('Sólo se permiten letras')})
+        if any(p.isdigit() for p in self.material_descripcion):
+            raise ValidationError({'material_descripcion': _('Sólo se permiten letras')})
 
         if self.material_costo_dolar < 0:
             raise ValidationError({'material_costo_dolar': _('No se admiten números negativos')})
@@ -224,7 +202,8 @@ class Material(models.Model):
             models.Index(fields=['material_descripcion'], name='material_desc_idx')
         ]
         constraints = [
-            models.UniqueConstraint(fields=['material_descripcion', 'material_alto_mm', 'material_ancho_mm', 'material_gramaje_grs'], name='unique_material'),
+            models.UniqueConstraint(fields=['material_descripcion', 'material_alto_mm', 'material_ancho_mm',
+                                            'material_gramaje_grs'], name='unique_material'),
         ]
 
     def __str__(self):
@@ -234,12 +213,14 @@ class Material(models.Model):
 class TipoTerminacion(models.Model):
     tipo_terminacion_id = models.AutoField(primary_key=True)
     tipo_terminacion = models.CharField(max_length=25, blank=False, null=False, unique=True,
-                                        error_messages = {'unique': _('Esta terminación ya existe')})
+                                        error_messages={'unique': _('Esta terminación ya existe')})
+    flg_activo = models.BooleanField(blank=False, null=False, default=False)
+    fecha_carga = models.DateTimeField(auto_now_add=True)
 
     class Meta:
         db_table = '"tipo_terminacion"'
         constraints = [
-            models.UniqueConstraint(fields=['tipo_terminacion'], name='unique_tipo_terminacion'),
+            models.UniqueConstraint(fields=['tipo_terminacion', 'flg_activo'], name='unique_tipo_terminacion'),
         ]
 
     def clean(self):
@@ -256,12 +237,12 @@ class Terminacion(models.Model):
                                    error_messages={'unique': _('Esta terminación ya existe')})
     tipo_terminacion = models.ForeignKey(to=TipoTerminacion, on_delete=models.PROTECT)
     fecha_carga = models.DateTimeField(auto_now_add=True)
-    flg_activo = models.BooleanField(blank=False, null=False)
+    flg_activo = models.BooleanField(blank=False, null=False, default=False)
 
     class Meta:
         db_table = '"terminacion"'
         constraints = [
-            models.UniqueConstraint(fields=['terminacion'], name='unique_terminacion'),
+            models.UniqueConstraint(fields=['terminacion', 'flg_activo'], name='unique_terminacion'),
         ]
         indexes = [
             models.Index(fields=['terminacion'], name='terminacion_idx')
@@ -276,15 +257,21 @@ class Terminacion(models.Model):
 
 
 class Trabajo(models.Model):
+    """
+    ALTER SEQUENCE tipo_trabajo_trabajo_id_seq RESTART WITH 28;
+    """
     trabajo_id = models.AutoField(primary_key=True)
-    trabajo_descripcion = models.CharField(max_length=50, unique=True, error_messages={'unique': _('Este tipo de trabajo ya existe')})
+    trabajo_descripcion = models.CharField(max_length=50, unique=True,
+                                           error_messages={'unique': _('Este tipo de trabajo ya existe')})
     autoadhesivo_flg = models.BooleanField(blank=False, null=False)
     doble_cara_flg = models.BooleanField(blank=False, null=False)
-    tiempo_aprox_hs = models.IntegerField(blank=True, null=True)
-    demasia_trabajo_mm = models.DecimalField(max_digits=5, decimal_places=2, blank=True, null=True)
+    tiempo_aprox_hs = models.IntegerField(blank=True, null=True,
+                                          help_text=_('Tiempo para realizar el trabajo (sin las terminaciones)'))
+    demasia_trabajo_mm = models.DecimalField(max_digits=5, decimal_places=2, blank=True, null=True,
+                                             help_text=_('Demasía sugerida para la impresión'))
     circular_flg = models.BooleanField(blank=False, null=False)
     fecha_carga = models.DateTimeField(auto_now_add=True)
-    flg_activo = models.BooleanField(blank=False, null=False)
+    flg_activo = models.BooleanField(null=False, blank=True, default=False)
     medidas = models.ManyToManyField('MedidaEstandar')
     cantidades = models.ManyToManyField('Cantidad', through='TrabajoCantidades')
     terminaciones = models.ManyToManyField(Terminacion, through='TrabajoTerminaciones', related_name='terminaciones')
@@ -292,45 +279,37 @@ class Trabajo(models.Model):
     maquinas_pliego = models.ManyToManyField('MaquinaPliego')
 
     class Meta:
-        db_table = '"tipo_trabajo"'
+        db_table = '"trabajo"'
 
     def clean(self):
-        if any(tt.isdigit() for tt in self.tipo_trabajo):
-            raise ValidationError({'tipo_trabajo': _('Sólo se permiten letras')})
-
-        if self.tipo_trabajo_autoadhesivo_flg and self.tipo_trabajo_doble_cara_flg:
-            raise ValidationError({'tipo_trabajo_doble_cara_flg': _('Si el trabajo es autoadhesivo, no permite impresión doble cara')})
+        if self.autoadhesivo_flg and self.doble_cara_flg:
+            raise ValidationError({'doble_cara_flg': _('El trabajo es autoadhesivo, no permite impresión doble faz')})
 
     def __str__(self):
         return self.trabajo_descripcion
 
-    def adhesivo_sin_flg_doble_cara(self):
-        if self.autoadhesivo_flg and self.doble_cara_flg:
-            return False
-        else:
-            return True
-
 
 class TrabajoTerminaciones(models.Model):
-    tipo_trabajo = models.ForeignKey(Trabajo, on_delete=models.PROTECT)
+    trabajo = models.ForeignKey(Trabajo, on_delete=models.PROTECT)
     terminacion = models.ForeignKey(Terminacion, on_delete=models.PROTECT)
     fecha_carga = models.DateTimeField(auto_now_add=True)
-    flg_activo = models.BooleanField(blank=False, null=False, default=1)
+    flg_activo = models.BooleanField(blank=False, null=False, default=False)
 
     class Meta:
-        db_table = '"tipo_trabajo_terminaciones"'
+        db_table = '"trabajo_terminaciones"'
         constraints = [
-            models.UniqueConstraint(fields=['tipo_trabajo', 'terminacion', 'fecha_carga', 'flg_activo'],
-                                    name='unique_tipo_trabajo_terminacion'),
+            models.UniqueConstraint(fields=['trabajo', 'terminacion', 'flg_activo'],
+                                    name='unique_trabajo_terminacion'),
         ]
 
 
 class MedidaEstandar(models.Model):
     medida_estandar_id = models.AutoField(primary_key=True)
+    medida_flg_circular = models.BooleanField()
     medida_1_cm = models.DecimalField(max_digits=6, decimal_places=2)
-    medida_2_cm = models.DecimalField(max_digits=6, decimal_places=2, default=0)
+    medida_2_cm = models.DecimalField(max_digits=6, decimal_places=2, default=0, blank=True, null=True)
     fecha_carga = models.DateTimeField(auto_now_add=True)
-    flg_activo = models.BooleanField(blank=False, null=False)
+    flg_activo = models.BooleanField(blank=False, null=False, default=False)
 
     class Meta:
         db_table = 'medida_estandar'
@@ -339,6 +318,10 @@ class MedidaEstandar(models.Model):
                                     name='unique_medida_estandar'),
         ]
         ordering = ['medida_1_cm', 'medida_2_cm']
+
+    def clean(self):
+        if self.medida_flg_circular and self.medida_2_cm is not None:
+            raise ValidationError({'medida_2_cm': _('Si la medida es circular, debe ingresar el radio en la medida 1')})
 
     def unique_error_message(self, model_class, unique_check):
         if model_class == type(self) and (unique_check == ('medida_1_cm', 'medida_2_cm')
@@ -353,15 +336,16 @@ class MedidaEstandar(models.Model):
 
 class Cantidad(models.Model):
     cantidad_id = models.AutoField(primary_key=True)
-    cantidad = models.IntegerField(blank=False, null=False, unique=True, error_messages={'unique':'Esta cantidad ya existe'})
+    cantidad = models.IntegerField(blank=False, null=False, unique=True,
+                                   error_messages={'unique': 'Esta cantidad ya existe'})
     fecha_carga = models.DateTimeField(auto_now_add=True)
-    flg_activo = models.BooleanField(blank=False, null=False)
+    flg_activo = models.BooleanField(blank=False, null=False, default=False)
 
     def __str__(self):
         return str(self.cantidad)
 
     class Meta:
-        db_table='"cantidad"'
+        db_table = '"cantidad"'
         ordering = ['cantidad']
         constraints = [
             models.UniqueConstraint(fields=['cantidad'], name='unique_cantidad'),
@@ -369,29 +353,31 @@ class Cantidad(models.Model):
 
 
 class TrabajoCantidades(models.Model):
-    tipo_trabajo = models.ForeignKey(Trabajo, on_delete=models.PROTECT)
+    trabajo = models.ForeignKey(Trabajo, on_delete=models.PROTECT)
     cantidad = models.ForeignKey(Cantidad, on_delete=models.PROTECT)
     descuento = models.PositiveSmallIntegerField(blank=True, null=True)
     fecha_carga = models.DateTimeField(auto_now_add=True)
-    flg_activo = models.BooleanField(blank=False, null=False)
+    flg_activo = models.BooleanField(blank=False, null=False, default=False)
 
     class Meta:
-        db_table = '"tipo_trabajo_cantidades"'
+        db_table = '"trabajo_cantidades"'
         constraints = [
-            models.UniqueConstraint(fields=['tipo_trabajo', 'cantidad', 'descuento', 'flg_activo'],
-                                    name='unique_tipo_trabajo_cantidad'),
+            models.UniqueConstraint(fields=['trabajo', 'cantidad', 'descuento', 'flg_activo'],
+                                    name='unique_trabajo_cantidad'),
         ]
 
 
 class ColorImpresion(models.Model):
     color_impresion_id = models.AutoField(primary_key=True)
-    color_impresion = models.CharField(max_length=50, null=False, blank=False, unique=True, \
+    color_impresion = models.CharField(max_length=50, null=False, blank=False, unique=True,
                                        error_messages={'unique': _('Este color de impresión ya existe')})
+    flg_activo = models.BooleanField(blank=False, null=False, default=False)
+    fecha_carga = models.DateTimeField(auto_now_add=True)
 
     class Meta:
-        db_table='"color_impresion"'
+        db_table = '"color_impresion"'
         constraints = [
-            models.UniqueConstraint(fields=['color_impresion'], name='unique_color_impresion'),
+            models.UniqueConstraint(fields=['color_impresion', 'flg_activo'], name='unique_color_impresion'),
         ]
 
     def clean(self):
@@ -408,7 +394,7 @@ class Maquina(models.Model):
     maquina_descripcion = models.CharField(max_length=100, blank=True, null=True)
     servicio_tecnico = models.ForeignKey('ServicioTecnico', on_delete=models.PROTECT, blank=True, null=True)
     fecha_carga = models.DateTimeField(auto_now_add=True)
-    flg_activo = models.BooleanField(blank=False, null=False)
+    flg_activo = models.BooleanField(blank=False, null=False, default=False)
 
     class Meta:
         abstract = True
@@ -430,11 +416,13 @@ class TerminacionesMaquinas(models.Model):
     terminacion = models.ForeignKey(Terminacion, on_delete=models.PROTECT)
     cant_hojas_max_permitidas = models.PositiveSmallIntegerField(blank=True, null=False, default=0)
     costo_dolar = models.DecimalField(max_digits=5, decimal_places=3, blank=False, null=False)
+    fecha_carga = models.DateTimeField(auto_now_add=True)
+    flg_activo = models.BooleanField(blank=False, null=False, default=False)
 
     class Meta:
         db_table = '"terminacion_maquinas"'
         constraints = [
-            models.UniqueConstraint(fields=['maquina_terminacion', 'terminacion'],
+            models.UniqueConstraint(fields=['maquina_terminacion', 'terminacion', 'flg_activo'],
                                     name='unique_maq_terminacion_terminaciones'),
         ]
 
@@ -455,13 +443,13 @@ class MaquinaPliegoColores(models.Model):
     maquina_pliego = models.ForeignKey(MaquinaPliego, on_delete=models.PROTECT)
     color_impresion = models.ForeignKey(ColorImpresion, on_delete=models.PROTECT)
     fecha_carga = models.DateTimeField(auto_now_add=True)
-    flg_activo = models.BooleanField(blank=False, null=False)
-    costo_dolar = models.DecimalField(max_digits=5, decimal_places=3, blank=False, null=False)
+    flg_activo = models.BooleanField(blank=False, null=False, default=False)
+    costo_dolar = models.DecimalField(max_digits=5, decimal_places=2, blank=False)
 
     class Meta:
-        db_table ='"maquina_pliego_colores"'
+        db_table = '"maquina_pliego_colores"'
         constraints = [
-            models.UniqueConstraint(fields=['maquina_pliego', 'color_impresion', 'fecha_carga', 'flg_activo'],
+            models.UniqueConstraint(fields=['maquina_pliego', 'color_impresion', 'flg_activo'],
                                     name='unique_pliego_color'),
         ]
 
@@ -474,7 +462,7 @@ class ServicioTecnico(models.Model):
     servicio_tecnico_id = models.AutoField(primary_key=True)
     servicio_tecnico = models.CharField(max_length=100, blank=False, null=False)
     fecha_carga = models.DateTimeField(auto_now_add=True)
-    flg_activo = models.BooleanField(blank=False, null=False)
+    flg_activo = models.BooleanField(blank=False, null=False, default=False)
 
     class Meta:
         db_table = '"servicio_tecnico"'
@@ -485,6 +473,9 @@ class ServicioTecnico(models.Model):
     def clean(self):
         if not self.servicio_tecnico.isalpha():
             raise ValidationError({'servicio_tecnico': _('Sólo se permiten letras')})
+
+    def __str__(self):
+        return self.servicio_tecnico
 
 
 class PagoRecibido(models.Model):
@@ -510,23 +501,26 @@ class PagoRecibido(models.Model):
 
 
 class Envio(models.Model):
-    ENVIO = (
-        ('moto', 'Envío por moto'),
-        ('retiro_local', 'Retiro por local'),
-        ('correo', 'Envío por correo')
-    )
     modo_envio_id = models.AutoField(primary_key=True)
-    modo_envio = models.CharField(choices=ENVIO, max_length=20, blank=False, null=False, unique=True)
+    modo_envio = models.CharField(max_length=20, blank=False, null=False, unique=True)
     modo_envio_porc_adicional = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True, default=0)
     modo_envio_costo = models.DecimalField(max_digits=10, decimal_places=2, blank=False, null=False, default=0)
+    flg_activo = models.BooleanField(blank=False, null=False, default=False)
+    fecha_carga = models.DateTimeField(auto_now_add=True)
 
     class Meta:
         db_table = '"envio"'
+        constraints = [
+            models.UniqueConstraint(fields=['modo_envio', 'flg_activo'],
+                                    name='unique_modo_envio'),
+        ]
 
     def __str__(self):
         return self.modo_envio
 
 # TODO Chequear el tema de los adjuntos
+
+
 class SolicitudPresupuesto(models.Model):
     ORIENTACION = (
         ('vertical', 'Vertical'),
@@ -535,7 +529,7 @@ class SolicitudPresupuesto(models.Model):
     solicitud_id = models.AutoField(primary_key=True)
     solicitud_fecha = models.DateTimeField(auto_now_add=True)
     solicitud_disenio_flg = models.BooleanField()
-    solicitud_comentarios = models.TextField(max_length=255, blank=True)
+    solicitud_comentarios_cliente = models.TextField(max_length=255, blank=True)
     solicitud_terminacion_flg = models.BooleanField()
     solicitud_terminaciones = models.ManyToManyField(Terminacion, through='SolicitudPresupuestoTerminaciones')
     solicitud_express_flg = models.BooleanField()
@@ -544,15 +538,13 @@ class SolicitudPresupuesto(models.Model):
     solicitud_adjunto_2 = models.FileField(blank=True, null=True)
     solicitud_adjunto_3 = models.FileField(blank=True, null=True)
     solicitud_orientacion = models.CharField(choices=ORIENTACION, max_length=25, blank=True, null=True)
-    solicitud_email_enviado_flg = models.BooleanField(default=False)
     trabajo = models.ForeignKey(Trabajo, on_delete=models.PROTECT, null=False)
     color_impresion = models.ForeignKey(ColorImpresion, on_delete=models.PROTECT, null=False)
     material = models.ForeignKey(Material, on_delete=models.PROTECT, null=False)
     envio = models.ForeignKey(Envio, on_delete=models.PROTECT, blank=True)
     medida_estandar = models.ForeignKey(MedidaEstandar, on_delete=models.PROTECT, null=False)
     cantidad_estandar = models.ForeignKey(Cantidad, on_delete=models.PROTECT, null=False)
-    cantidad_hojas_estimadas = models.SmallIntegerField(blank=True, null=True)
-    maquina_pliego_id = models.ForeignKey(MaquinaPliego, on_delete=models.PROTECT, blank=True, null=True)
+    maquina_pliego = models.ForeignKey(MaquinaPliego, on_delete=models.PROTECT, blank=True, null=True)
     contacto = models.ForeignKey(Contacto, on_delete=models.PROTECT, null=False)
 
     class Meta:
@@ -561,7 +553,54 @@ class SolicitudPresupuesto(models.Model):
     def clean(self):
         if self.trabajo.autoadhesivo_flg and self.solicitud_doble_cara_impresion_flg:
             raise ValidationError({'solicitud_doble_cara_impresion_flg': _('El tipo de trabajo es autoadhesivo y '
-                                                                           'no se puede hacer impresión en ambas caras')})
+                                                                           'no permite impresión doble faz')})
+
+    def cantidad_hojas_impresion(self):
+        area_material_mm = (self.material.material_alto_mm - self.material.material_demasia_hoja_mm) * \
+                           (self.material.material_ancho_mm - self.material.material_demasia_hoja_mm)
+        if self.trabajo.circular_flg:
+            area_trabajo_mm = (pi * pow((self.medida_estandar.medida_1_cm * 10), 2))/4
+        else:
+            area_trabajo_mm = (self.medida_estandar.medida_1_cm * 10) * (self.medida_estandar.medida_2_cm * 10)
+
+        trabajos_por_hoja = floor(area_material_mm/area_trabajo_mm)
+        return ceil(self.cantidad_estandar.cantidad / trabajos_por_hoja)
+
+    def calculo_presupuesto(self):
+        # costo impresion si o si tiene que estar la maquina de impresion seteada
+        maquina_pliego_color = MaquinaPliegoColores.objects.filter(maquina_pliego=self.maquina_pliego,
+                                                                   color_impresion=self.color_impresion,
+                                                                   flg_activo=True).first()
+
+        try:
+            costo_impresion = self.cantidad_hojas_impresion() * maquina_pliego_color.costo_dolar
+        except AttributeError:
+            costo_impresion = 0
+
+        if self.solicitud_doble_cara_impresion_flg:
+            costo_impresion = costo_impresion * 2
+
+        costo_materiales = self.cantidad_hojas_impresion() * self.material.material_costo_dolar
+
+        costo_terminaciones = 0
+
+        if self.solicitud_terminacion_flg and SolicitudPresupuestoTerminaciones.objects.filter(solicitud=self).exists():
+            solicitud_terminaciones = SolicitudPresupuestoTerminaciones.objects.filter(solicitud=self)
+
+            for t in solicitud_terminaciones:
+                try:
+                    costo_terminacion = TerminacionesMaquinas.objects.filter(maquina_terminacion=t.maquina_terminacion,
+                                                                             terminacion=t.terminacion,
+                                                                             flg_activo=True).first().costo_dolar
+                    if t.doble_cara_flg:
+                        costo_terminaciones = costo_terminacion * 2 * self.cantidad_hojas_impresion() + \
+                                              costo_terminaciones
+                    else:
+                        costo_terminaciones = costo_terminacion * self.cantidad_hojas_impresion() + costo_terminaciones
+                except AttributeError:
+                    costo_terminacion = 0
+
+        return costo_impresion, costo_materiales, costo_terminaciones
 
 
 class SolicitudPresupuestoTerminaciones(models.Model):
@@ -577,24 +616,37 @@ class SolicitudPresupuestoTerminaciones(models.Model):
 
 class Presupuesto(models.Model):
     solicitud = models.ForeignKey(SolicitudPresupuesto, on_delete=models.PROTECT)
-    presupuesto_porc_ganancia = models.DecimalField(max_digits=5, decimal_places=2, blank=False, null=False)
-    presupuesto_hojas_utilizadas = models.IntegerField(blank=False, null=False)
-    presupuesto_precio_dolar = models.DecimalField(max_digits=5, decimal_places=3, blank=False, null=False)
-    presupuesto_costo_materiales = models.DecimalField(max_digits=6, decimal_places=3, blank=False, null=False)
-    presupuesto_costo_disenio = models.DecimalField(max_digits=6, decimal_places=3, blank=False, null=False)
-    presupuesto_costo_unitario = models.DecimalField(max_digits=6, decimal_places=3, blank=False, null=False)
-    presupuesto_precio_cliente = models.DecimalField(max_digits=6, decimal_places=3, blank=False, null=False)
-    presupuesto_costo_terminaciones = models.DecimalField(max_digits=6, decimal_places=3, blank=False, null=False)
+    margen_ganancia = models.DecimalField(max_digits=5, decimal_places=2, blank=False, null=False)
+    hojas_utilizadas = models.IntegerField(blank=False, null=False)
+    costo_impresion_dolar = models.DecimalField(max_digits=5, decimal_places=3, blank=False, null=False)
+    cotizacion_dolar = models.DecimalField(max_digits=6, decimal_places=3, blank=False, null=False)
+    costo_disenio = models.DecimalField(max_digits=6, decimal_places=3, blank=True, null=True)
+    costo_unitario_dolar = models.DecimalField(max_digits=6, decimal_places=3, blank=False, null=False)
+    costo_total_dolar = models.DecimalField(max_digits=7, decimal_places=3, blank=False, null=False)
+    precio_cliente = models.DecimalField(max_digits=7, decimal_places=3, blank=False, null=False)
+    costo_material_dolar = models.DecimalField(max_digits=6, decimal_places=3, blank=False, null=False)
+    costo_terminaciones_dolar = models.DecimalField(max_digits=6, decimal_places=3, blank=False, null=False)
     fecha_carga = fecha_carga = models.DateTimeField(auto_now_add=True)
-    presupuesto_cliente = models.ForeignKey(Cliente, on_delete=models.PROTECT)
+    cliente = models.ForeignKey(Cliente, on_delete=models.PROTECT)
 
     class Meta:
-        db_table='"presupuesto"'
-        ordering = ['fecha_carga']
+        db_table = '"presupuesto"'
+        ordering = ['-fecha_carga']
 
-    def clean(self):
-        if not self.solicitud.solicitud_disenio_flg and self.presupuesto_costo_disenio is not None:
-            raise ValidationError({'presupuesto_costo_disenio': _('La solicitud no incluía diseño')})
+    def ultimo_estado(self):
+        ultimo_estado_presupuesto = self.presupuestoestado_set.all().order_by('-fecha_cambio_estado')[0]
+        return ultimo_estado_presupuesto
+
+
+class PresupuestoEstado(models.Model):
+    presupuesto = models.ForeignKey(Presupuesto, on_delete=models.PROTECT)
+    estado = models.ForeignKey('Estado', on_delete=models.PROTECT, limit_choices_to={'entidad_asociada': 'presupuesto'})
+    fecha_cambio_estado = models.DateTimeField(auto_now_add=True)
+    usuario = models.ForeignKey(User, on_delete=models.PROTECT, null=True)
+
+    class Meta:
+        db_table = '"presupuesto_estados"'
+        ordering = ['presupuesto', '-fecha_cambio_estado']
 
 
 class Estado(models.Model):
@@ -603,18 +655,41 @@ class Estado(models.Model):
         ('Intermedio', 'Estado intermedio'),
         ('Inicial', 'Estado inicial')
     )
+    ENTIDAD = (
+        ('orden_trabajo', 'Orden de Trabajo'),
+        ('presupuesto', 'Presupuesto')
+    )
     estado_id = models.AutoField(primary_key=True)
-    estado = models.CharField(max_length=50, blank=False, null=False, unique=True,
-                              error_messages={'unique': _('Este estado ya está registrado')})
-    tipo_estado = models.CharField(choices=TIPO_ESTADO, max_length=50, null=False, blank=False)
+    estado_descripcion = models.CharField(max_length=50, blank=False)
+    tipo_estado = models.CharField(choices=TIPO_ESTADO, max_length=25, null=False, blank=False)
     fecha_carga = models.DateTimeField(auto_now_add=True)
-    flg_activo = models.BooleanField(blank=False, null=False)
+    flg_activo = models.BooleanField(blank=False, null=False, default=False)
+    estado_secuencia = models.PositiveSmallIntegerField(blank=False, default=1)
+    entidad_asociada = models.CharField(choices=ENTIDAD, max_length=50, blank=False, default='orden_trabajo')
 
     class Meta:
-        db_table='"estado"'
+        db_table = '"estado"'
         constraints = [
-            models.UniqueConstraint(fields=['estado', 'tipo_estado'],
+            models.UniqueConstraint(fields=['estado_descripcion', 'tipo_estado', 'flg_activo','estado_secuencia','entidad_asociada'],
                                     name='unique_tipo_estado'),
+        ]
+
+    def __str__(self):
+        return self.estado_descripcion
+
+
+class Subestado(models.Model):
+    subestado_id = models.AutoField(primary_key=True)
+    subestado = models.CharField(max_length=50, blank=False, null=False)
+    estado = models.ForeignKey(to=Estado, on_delete=models.PROTECT,)
+    fecha_carga = models.DateTimeField(auto_now_add=True)
+    flg_activo = models.BooleanField(blank=False, null=False, default=False)
+
+    class Meta:
+        db_table = '"subestado"'
+        constraints = [
+            models.UniqueConstraint(fields=['estado', 'subestado', 'flg_activo'],
+                                    name='unique_subestado'),
         ]
 
 
@@ -622,447 +697,41 @@ class OrdenTrabajo(models.Model):
     orden_id = models.AutoField(primary_key=True)
     presupuesto = models.OneToOneField(Presupuesto, on_delete=models.PROTECT, blank=True, null=True)
     orden_fecha_creacion = models.DateTimeField(auto_now_add=True)
-    orden_impresion_realizada_flg = models.BooleanField()
-    orden_terminacion_realizada_flg = models.BooleanField()
-    orden_disenio_realizado_flg = models.BooleanField()
-    orden_comentarios = models.TextField()
+    orden_impresion_realizada_flg = models.BooleanField(blank=True)
+    orden_terminacion_realizada_flg = models.BooleanField(blank=True)
+    orden_disenio_realizado_flg = models.BooleanField(blank=True)
     estados = models.ManyToManyField(Estado, through='OrdenTrabajoEstado')
 
     class Meta:
-        db_table ='"orden_trabajo"'
+        db_table = '"orden_trabajo"'
         ordering = ['orden_fecha_creacion']
+
+    def ultimo_estado(self):
+        ultimo_estado_ot = self.ordentrabajoestado_set.all().order_by('-fecha_cambio_estado')[0]
+        return ultimo_estado_ot
 
 
 class OrdenTrabajoEstado(models.Model):
     id = models.AutoField(primary_key=True)
     fecha_cambio_estado = models.DateTimeField(auto_now_add=True)
-    estado = models.ForeignKey(Estado, on_delete=models.PROTECT)
+    estado = models.ForeignKey(Estado, on_delete=models.PROTECT, limit_choices_to={'entidad_asociada':'orden_trabajo'})
     orden_trabajo = models.ForeignKey(OrdenTrabajo, on_delete=models.PROTECT)
-    personal = models.ForeignKey('Personal', on_delete=models.PROTECT)
+    usuario = models.ForeignKey(User, on_delete=models.PROTECT, null=True)
 
     class Meta:
         db_table = '"orden_trabajo_estados"'
         ordering = ['orden_trabajo', 'estado']
 
 
-class Personal(models.Model):
-    TIPO_DOC = (
-        ('DNI', 'DNI'),
-        ('CUIL', 'CUIL'),
-        ('LC', 'LC'),
-        ('LE', 'LE'),
-        ('CUIT', 'CUIT'),
-        ('PASA', 'PASAPORTE')
-    )
-    #user_id = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, db_column='user_id', related_name='%(class)s_requests_created')
-    user_id = models.OneToOneField(User, on_delete=models.PROTECT, db_column='user_id', related_name='personal')
-    tel = models.CharField(max_length=20, blank=True, null=True)
-    cel = models.CharField(max_length=20, blank=True, null=True)
-    confirmado = models.BooleanField(default=False)
-    tipo_documento = models.CharField(choices=TIPO_DOC, max_length=10, blank=False, null=False)
-    numero_documento = models.CharField(max_length=12, blank=False, null=False)
+class Comentario(models.Model):
+    solicitud = models.ForeignKey(SolicitudPresupuesto, on_delete=models.PROTECT, null=True)
+    presupuesto = models.ForeignKey(Presupuesto, on_delete=models.PROTECT, null=True)
+    orden = models.ForeignKey(OrdenTrabajo, on_delete=models.PROTECT, null=True)
+    fecha_comentario = models.DateTimeField(auto_now_add=True)
+    comentario = models.TextField(max_length=100, blank=True)
+    # TODO que guarde el usuario logueado
+    usuario = models.ForeignKey(User, on_delete=models.PROTECT, null=True)
 
     class Meta:
-        constraints = [
-            models.UniqueConstraint(fields=['tipo_documento', 'numero_documento'], name='unique_tipo_nro_doc_personal'),
-        ]
-
-
-''' 
-##########################################
-    Acá van los formularios
-##########################################
-'''
-
-'''
-class TipoClienteForm(ModelForm):
-    class Meta:
-        model = TipoCliente
-        exclude = ['tipo_cliente_id', 'fecha_carga']
-        error_message = {
-                            NON_FIELD_ERRORS: {
-                                'unique_together': "%(field_labels)s del modelo %(model_name)s  no %(es)son %(único)s.",
-                            }
-                        },
-
-
-
-
-
-class ClientePublicoForm(ModelForm):
-    class Meta:
-        model = Cliente
-        exclude = ['cliente_id', 'cliente_ml_email', 'cliente_original_lista_dist', 'cliente_fecha_alta',
-                   'cliente_fecha_activo', 'cliente_flg_autenticado', 'tipo_cliente' ]
-
-        error_message = {
-                            NON_FIELD_ERRORS: {
-                                'unique_together': "%(field_labels)s del modelo %(model_name)s  no %(es)son %(único)s.",
-                            }
-                        },
-
-class DomicilioForm(ModelForm):
-    class Meta:
-        model = Domicilio
-        exclude = ['domicilio_id', 'cliente', 'proveedor', 'fecha_carga', 'domicilio_longitud',
-                   'domicilio_latitud', ]
-        labels = {
-            'domicilio_calle': _('Calle'),
-            'domicilio_entre_calle_1': _('Entre calle (1)'),
-            'domicilio_entre_calle_2': _('Entre calle (2)'),
-            'domicilio_entre_calle_3': _('Entre calle (3)'),
-            'domicilio_altura': _('Altura'),
-            'flg_activo': _('Domicilio Activo')
-        }
-        error_message = {
-                            NON_FIELD_ERRORS: {
-                                'unique_together': "%(field_labels)s del modelo %(model_name)s  no %(es)son %(único)s.",
-                            }
-                        },
-
-# TODO Este formulario si y sólo si debe llamarse cuando exista una instancia de Cliente, proveedor o Servicio Tecnico.
-class ContactoForm(ModelForm):
-    class Meta:
-        model = Contacto
-        exclude = ['dato_contacto_id', 'cliente', 'proveedor', 'servicio_tecnico', 'fecha_carga']
-        labels = {
-            'flg_activo': _('Activo'),
-            'dato_contacto_valor':_('Dato (email/celular/teléfono'),
-            'tipo_dato_contacto': _('Tipo dato de contacto'),
-            'dato_contacto_interno': _('Interno'),
-            'dato_contacto_uso': _('Uso'),
-            'dato_contacto_horario_contacto': _('Horario de contacto'),
-            'dato_contacto_flg_no_llame': _('Registro No Llame'),
-            'dato_contacto_comentarios': _('Comentarios'),
-        }
-    field_order = ['dato_contacto_uso', 'tipo_dato_contacto', 'dato_contacto_valor', 'dato_contacto_interno',
-                   'dato_contacto_horario_contacto', 'dato_contacto_flg_no_llame', 'dato_contacto_comentarios',
-                   'flg_activo']
-
-
-class ProveedorForm(ModelForm):
-    class Meta:
-        model = Proveedor
-        exclude = ['proveedor_id', 'fecha_carga']
-        labels = {
-            'proveedor_razon_social': _('Razón Social'),
-            'proveedor_tipo_doc': _('Tipo documento'),
-            'proveedor_nro_doc': _('Nro documento'),
-            'proveedor_descripción': _('Descripción'),
-            'nota_1': _('Notas'),
-            'flg_activo': _('Activo')
-        }
-
-
-class MaterialForm(ModelForm):
-    class Meta:
-        model = Material
-        exclude = ['material_id', 'fecha_carga']
-        labels = {
-            'material_alto_mm': _('Alto  (mm)'),
-            'material_ancho_mm': _('Ancho (mm)'),
-            'material_costo_dolar': _('Costo (u$s)'),
-            'material_gramaje_grs': _('Gramaje'),
-            'material_demasia_hoja_mm': _('Demasía (mm)'),
-            'flg_activo': _('Activo')
-        }
-        widgets = {
-            'proveedores': forms.SelectMultiple(),
-            'trabajos': forms.SelectMultiple()
-        }
-
-
-class TipoTrabajoForm(ModelForm):
-    class Meta:
-        model = TipoTrabajo
-        exclude = ['tipo_trabajo_id', 'fecha_carga', 'cantidades']
-        labels = {
-            'tipo_trabajo': _('Trabajo'),
-            'tipo_trabajo_autoadhesivo_flg': _('Es autoadhesivo'),
-            'tipo_trabajo_doble_cara_flg': _('Permite impresión doble cara'),
-            'tipo_trabajo_tiempo_aprox_hs': _('Tiempo de realización aprox (Hs)'),
-            'tipo_trabajo_demasia_trabajo_mm': _('Demasía aprox (mm)'),
-            'tipo_trabajo_circular_flg': _('Es circular'),
-            'flg_activo': _('Trabajo activo')
-        }
-        widgets = {
-            'medidas': forms.SelectMultiple(),
-            #'cantidades': forms.SelectMultiple(),
-            'terminaciones': forms.SelectMultiple(),
-            'materiales': forms.SelectMultiple()
-        }
-        help_texts={
-            'medidas': _('Mantenga <Ctrl> presionado para seleccionar más de una opción'),
-            'materiales': _('Mantenga <Ctrl> presionado para seleccionar más de una opción'),
-        }
-
-
-class MedidaEstandarForm(ModelForm):
-    class Meta:
-        model = MedidaEstandar
-        exclude = ['medida_estandar_id', 'fecha_carga']
-        labels = {
-            'medida_1_cm': _('Medida 1 (cm)'),
-            'medida_2_cm': _('Medida 2 (cm)'),
-            'flg_activo': _('Medida activa')
-        }
-        error_messages = {
-             NON_FIELD_ERRORS: {
-                 'unique_together': "%(field_labels)s del modelo %(model_name)s  no son únicos.",
-             }
-         }
-
-
-class CantidadForm(ModelForm):
-    class Meta:
-        model = Cantidad
-        exclude = ['cantidad_id', 'fecha_carga']
-        labels = {
-            'flg_activo': _('Cantidad activa')
-        }
-
-
-class TipoTrabajoCantidadesForm(ModelForm):
-    class Meta:
-        model = TipoTrabajoCantidades
-        exclude = ['fecha_carga']
-        labels = {
-            'flg_activo': _('Tipo de trabajo activo')
-        }
-
-TipoTrabajoCantidadesFormset = inlineformset_factory(TipoTrabajo, TipoTrabajoCantidades, form=TipoTrabajoCantidadesForm,
-                                                     extra=2)
-
-
-class TerminacionForm(ModelForm):
-    class Meta:
-        model = Terminacion
-        exclude = ['fecha_carga', 'terminacion_id']
-        labels = {
-            'flg_activo': _('Terminación activa')
-        }
-        widgets = {
-            'tipo_terminacion': forms.Select()
-        }
-
-
-class ColorImpresionForm(ModelForm):
-    class Meta:
-        model = ColorImpresion
-        exclude = ['fecha_carga', 'color_impresion_id']
-        labels = {
-            'flg_activo': _('Color de impresión activo')
-        }
-
-
-class MaquinaTerminacionForm(ModelForm):
-    class Meta:
-        model = MaquinaTerminacion
-        exclude = ['fecha_carga', 'maquina_id', 'terminaciones']
-        labels = {
-            'flg_activo': _('Maquina activa')
-        }
-
-
-class MaquinaTerminacionTerminacionesForm(ModelForm):
-    class Meta:
-        model = MaquinaTerminacionTerminaciones
-        exclude = ['fecha_carga', 'maquina_terminacion']
-        labels = {
-            'terminacion': _('Terminación'),
-            'cant_max': _('Cantidad máxima'),
-            'cant_max_costo_dolar': _('Costo (u$s'),
-            'flg_activo': _('Combinación de Máquina y Terminación activa')
-        }
-
-
-MaquinaTerminacionesFormset = inlineformset_factory(MaquinaTerminacion, MaquinaTerminacionTerminaciones,\
-                                                    form=MaquinaTerminacionTerminacionesForm, extra=2)
-
-
-class MaquinaPliegoForm(ModelForm):
-    class Meta:
-        model = MaquinaPliego
-        exclude = ['fecha_carga', 'maquina_id', 'colores_impresion']
-        labels = {
-            'flg_activo': _('Maquina activa'),
-            'maquina_pliego_descripcion': _('Descripción'),
-            'maquina_pliego_ult_cambio_toner': _('Último cambio de tóner/cartucho'),
-            'demasia_impresion_mm': _('Demasía necesaria para los trabajos (mm)'),
-        }
-
-# Esta es necesaria, porque un color puede imprimirse con varias máquinas
-class MaquinaPliegoColorImpresionForm(ModelForm):
-    class Meta:
-        model = MaquinaPliegoColorImpresion
-        exclude = ['fecha_carga']
-        labels = {
-            'maquina_pliego': _('Máquina'),
-            'color_impresion': _('Color'),
-            'costo_dolar': _('Costo impresión (u$s)')
-        }
-
-MaquinaPliegoColorFormset = inlineformset_factory(MaquinaPliego, MaquinaPliegoColorImpresion, form=MaquinaPliegoColorImpresionForm,
-                                                  extra=2)
-
-# Esta es necesaria porque cuando llega una SP, de acuerdo al tipo de trabajo y al color requerido, el usuario va a
-# poder elegir con qué máquina realizará el trabajo
-class ImpresionForm(ModelForm):
-    class Meta:
-        model = Impresion
-        exclude = ['fecha_carga']
-        labels = {
-            'tipo_trabajo': _('Tipo de trabajo'),
-            'color_impresion': _('Color'),
-            'maquina_pliego': _('Máquina'),
-            'flg_activo': _('Combinacion activa'),
-        }
-
-
-class ServicioTecnicoForm(ModelForm):
-    class Meta:
-        model = ServicioTecnico
-        exclude = ['fecha_carga', 'servicio_tecnico_id']
-        labels = {
-            'servicio_tecnico': _('Razón social'),
-            'flg_activo': _('Servicio activo'),
-        }
-
-class TipoPagoForm(ModelForm):
-    class Meta:
-        model = TipoPago
-        exclude = ['tipo_pago_id',  'fecha_carga']
-        labels = {
-            'tipo_pago': _('Tipo de pago'),
-            'tipo_pago_recargo_porcentaje': _('Recargo (%)'),
-            'flg_activo': _('Tipo de pago activo')
-        }
-
-
-class ComprobanteCobroForm(ModelForm):
-    class Meta:
-        model = ComprobanteCobro
-        exclude = ['comprobante_id', 'fecha_carga']
-        labels = {
-            'comprobante_fecha_cobro': _('Fecha de cobro'),
-            'comprobante_monto_cobro': _('Monto recibido'),
-            'tipo_pago': _('Tipo de pago')
-        }
-
-
-class ModoEnvioForm(ModelForm):
-    class Meta:
-        model = ModoEnvio
-        exclude = ['modo_envio_id', 'fecha_carga']
-        labels = {
-            'modo_envio_costo_adicional': _('Costo adicional'),
-            'modo_envio_hs_aprox' : _('¿Cuánto tarda aprox? (hs)'),
-            'flg_activo': _('Modo de envío activo')
-        }
-
-
-class SolicitudPresupuestoForm(ModelForm):
-    class Meta:
-        model = SolicitudPresupuesto
-        exclude = ['solicitud_id', 'solicitud_fecha', 'solicitud_fecha_confirmacion', 'solicitud_email_enviado_flg',
-                   'cliente']
-        labels = {
-            'solicitud_disenio_flg': _('Requiere diseño previo'),
-            'solicitud_trabajo_alto_mm': _('Alto (mm)'),
-            'solicitud_trabajo_ancho_mm': _('Ancho (mm)'),
-            'solicitud_terminacion_flg': _('Requiere de terminaciones'),
-            'solicitud_express_flg': _('Solicitud EXPRESS'),
-            'solicitud_doble_cara_impresion_flg': _('Impresión en ambas caras'),
-            'solicitud_adjuntos': _('Adjuntos'),
-            'solicitud_orientacion': _('Orientación'),
-            'tipo_trabajo': _('Trabajo requerido'),
-            'color_impresion': _('Color de impresión'),
-            'material': _('Material'),
-            'envio': _('Envío')
-        }
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.fields['material'].queryset = Material.objects.none()
-        self.fields['color_impresion'].queryset = ColorImpresion.objects.none()
-        self.fields['envio'].queryset = ModoEnvio.objects.none()
-        self.fields['medida_estandar'].queryset = MedidaEstandar.objects.none()
-
-class SolicitudPresupuestoTerminacionesForm(ModelForm):
-    class Meta:
-        model = SolicitudPresupuestoTerminaciones
-        exclude = ['solicitud']
-        labels = {
-            'doble_cara_flg': _('Terminación para ambas caras')
-        }
-
-
-class PresupuestoForm(ModelForm):
-    class Meta:
-        model = Presupuesto
-        exclude = ['solicitud', 'fecha_carga']
-        labels = {
-            'presupuesto_ganancia': _('Ganancia (%)'),
-            'presupuesto_hojas_utilizadas': _('Hojas a utilizar (aprox)'),
-            'presupuesto_precio_dolar': _('Cotización dolar'),
-            'presupuesto_costo_materiales': _('Costo de materiales'),
-            'presupuesto_costo_disenio': _('Costo de diseño'),
-            'presupuesto_costo_unitario': _('Costo unitario'),
-            'presupuesto_precio_cliente': _('Precio sugerido al cliente'),
-            'maquina_pliego': _('Máquina de impresión a utilizar'),
-        }
-        widgets = {
-            'presupuesto_hojas_utilizadas': forms.NumberInput(attrs={'disabled': True}),
-            'presupuesto_costo_materiales': forms.NumberInput(attrs={'disabled': True}),
-            'presupuesto_costo_unitario': forms.NumberInput(attrs={'disabled': True}),
-        }
-
-
-class PresupuestoTerminacionesForm(ModelForm):
-    class Meta:
-        model = PresupuestoTerminaciones
-        exclude = ['presupuesto']
-        labels = {
-            'maquina_terminacion': _('Máquina de terminación'),
-            'terminación': _('Terminación'),
-            'costo_dolar': _('Costo terminación (u$s)')
-        }
-        widgets = {
-            'terminacion': forms.Select(attrs={'disabled': True})
-        }
-
-
-class EstadoForm(ModelForm):
-    class Meta:
-        model = Estado
-        exclude = ['estado_id', 'fecha_carga']
-        labels = {
-            'flg_activo': _('Estado activo'),
-        }
-
-
-class OrdenTrabajoForm(ModelForm):
-    class Meta:
-        model = OrdenTrabajo
-        exclude = ['orden_id', 'solicitud', 'orden_fecha_creacion', 'estados']
-        labels = {
-            'orden_precio_final': _('Precio final'),
-            'orden_impresion_realizada_flg': _('Impresión realizada'),
-            'orden_terminacion_realizada_flg': _('Terminaciones realizadas'),
-            'orden_disenio_realizado_flg': _('Diseño realizado'),
-            'orden_comentarios': _('Comentarios')
-        }
-
-
-class OrdenTrabajoEstadoForm(ModelForm):
-    class Meta:
-        model = OrdenTrabajoEstado
-        exclude = ['orden_trabajo']
-        labels = {
-            'fecha_cambio_estado': _('Fecha'),
-            'personal': _('Usuario')
-        }
-
-
-TODO ¿Formulario para Personal?
-'''
+        db_table = '"comentarios"'
+        ordering = ['-fecha_comentario']

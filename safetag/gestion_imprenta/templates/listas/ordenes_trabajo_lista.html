@@ -1,0 +1,43 @@
+{% extends "listas/base_lista.html" %}
+
+{% block content %}
+<h3>{{ titulo }} </h3>
+<table class="table is-fullwidth">
+    <thead>
+        <tr>
+            <th>Presupuesto ID</th>
+            <th>Fecha creación</th>
+            <th>Impresión realizada</th>
+            <th>Terminaciones realizadas</th>
+            <th>Diseño realizado</th>
+            <th>Último estado</th>
+            <th>Fecha del último estado</th>
+            <th>Más detalle</th>
+        </tr>
+    </thead>
+    <tbody>
+    {% for ot in page_obj %}
+        <tr>
+            <td>
+                <a href="{% url 'detalle_presupuesto' ot.presupuesto.pk %}">{{ ot.presupuesto.pk }}</a>
+            </td>
+            <td>
+                {{ ot.orden_fecha_creacion }}
+            </td>
+            <td>{{ ot.orden_impresion_realizada_flg|yesno:"Sí,No" }}</td>
+            <td>{{ ot.orden_terminacion_realizada_flg|yesno:"Sí,No" }}</td>
+            <td>{{ ot.orden_disenio_realizado_flg|yesno:"Sí,No" }}</td>
+            <td>{{ ot.ultimo_estado.estado.estado_descripcion }}</td>
+            <td>{{ ot.ultimo_estado.fecha_cambio_estado }}</td>
+            <td>
+                <a href="{% url 'detalle_orden_trabajo' ot.pk %}">Más detalle</a>
+            </td>
+        </tr>
+    {% empty %}
+        <tr>
+            <td>Sin órdenes de trabajo</td>
+        </tr>
+    {% endfor %}
+    </tbody>
+</table>
+{% endblock %}

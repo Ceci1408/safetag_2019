@@ -4,27 +4,26 @@ from django.core.exceptions import NON_FIELD_ERRORS
 from django.utils.translation import gettext_lazy as _
 
 from gestion_imprenta.models import SolicitudPresupuesto, SolicitudPresupuestoTerminaciones, Material, Cantidad,\
-    MedidaEstandar, Trabajo, Contacto, Cliente
+    MedidaEstandar, Trabajo, Contacto, Cliente, ColorImpresion, Envio, Terminacion
 
 
 class SolicitudPresupuestoForm(ModelForm):
     field_order = ['trabajo', 'material', 'color_impresion', 'medida_estandar', 'solicitud_orientacion',
                    'cantidad_estandar', 'solicitud_doble_cara_impresion_flg', 'solicitud_disenio_flg',
                    'solicitud_terminacion_flg',  'solicitud_adjunto_1', 'solicitud_adjunto_2', 'solicitud_adjunto_3',
-                   'solicitud_express_flg', 'envio','solicitud_comentarios', 'doble_cara_flg' ]
+                   'solicitud_express_flg', 'envio','solicitud_comentarios_cliente', 'doble_cara_flg' ]
 
     class Meta:
         model = SolicitudPresupuesto
         exclude = ['solicitud_email_enviado_flg',
-                   'maquina_pliego_id',
-                   'cantidad_hojas_estimadas',
+                   'maquina_pliego',
                    'solicitud_terminaciones',
                    'contacto'
                    ]
 
         labels = {
             'solicitud_disenio_flg': _('Requiere diseño'),
-            'solicitud_comentarios': _('Comentarios adicionales'),
+            'solicitud_comentarios_cliente': _('Comentarios adicionales'),
             'solicitud_terminacion_flg': _('Requiere terminaciones'),
             'solicitud_express_flg': _('Requiere prioridad (Express)'),
             'solicitud_doble_cara_impresion_flg': _('Requiere impresión doble faz'),

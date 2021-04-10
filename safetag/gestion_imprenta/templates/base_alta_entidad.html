@@ -1,0 +1,39 @@
+{% extends 'base.html' %}
+{% block title %}
+    {{ modelo }} - Nuevo Registro
+{% endblock %}
+
+{% block content %}
+    {% block formulario %}
+    <form action="" method="post">
+        {% csrf_token %}
+        {{ form.non_field_errors }}
+        <table class="table is-fullwidth">
+            <thead>
+                <tr>
+                    <th> Formulario </th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for f in form.visible_fields %}
+                <tr>
+                    <td>
+                        {{ f.label_tag }}
+                    </td>
+                    <td>
+                        {{ f }}
+                    </td>
+                    <td>
+                        {{ f.errors }}
+                    </td>
+                    <td>
+                        {{ f.help_text }}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        <input type="submit" value="Guardar!">
+    </form>
+    {% endblock formulario %}
+{% endblock content%}

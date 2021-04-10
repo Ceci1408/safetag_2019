@@ -1,4 +1,4 @@
-{% extends 'base.html' %}
+{% extends 'base_autogestion.html' %}
 {% block title %} Alta Solicitud Presupuesto {% endblock %}
 
 {% block content %}
@@ -37,6 +37,13 @@
                     <td>{{ form.comentarios.label }}</td>
                     <td>{{ form.comentarios }}</td>
                 </tr>
+                <tr>
+                    {% for field in form %}
+                    <td>
+                        {{ field.errors }}
+                    </td>
+                    {% endfor %}
+                </tr>
                 {% endfor %}
             </table>
             <div>
@@ -56,6 +63,13 @@
                     <td>{{ form.tipo_dato_contacto.label }}</td>
                     <td>{{ form.tipo_dato_contacto }}</td>
                     <td>{{ form.dato_contacto_valor }}</td>
+                </tr>
+                <tr>
+                    {% for field in form %}
+                    <td>
+                        {{ field.errors }}
+                    </td>
+                    {% endfor %}
                 </tr>
                 {% endfor %}
             </table>

@@ -1,0 +1,69 @@
+{% extends "base.html" %}
+{% load custom_tags %}
+
+{% block title %}
+    {{ titulo }}
+{% endblock %}
+
+{% block content %}
+    <div>
+        {% include "resumen/resumen_orden_trabajo.html" %}
+    </div>
+    <br>
+
+    <div>
+        <table class="comentarios">
+            <thead>
+            <tr>
+                <th>Fecha</th>
+                <th>Usuario</th>
+                <th>Comentario</th>
+            </tr>
+            </thead>
+            <tbody>
+            {% for c in ordentrabajo.comentario_set.all %}
+            <tr>
+                <td>
+                    {{ c.fecha_comentario }}
+                </td>
+                <td>
+                    {{ c.usuario }}
+                </td>
+                <td>
+                    {{ c.comentario }}
+                </td>
+            </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+        <div>
+            <a class="btn btn-primary" href="{% url 'orden_trabajo_comentarios' ordentrabajo.pk %}">Agregar comentarios</a>
+        </div>
+    </div>
+
+    <div>
+        <table class="historia_estados">
+            <thead>
+                <tr>
+                    <th>Estado</th>
+                    <th>Fecha</th>
+                    <th>Usuario</th>
+                </tr>
+            </thead>
+            <tbody>
+            {% for oe in ordentrabajo.ordentrabajoestado_set.all %}
+            <tr>
+                <td>{{ oe.estado.estado_descripcion }}</td>
+                <td>{{ oe.fecha_cambio_estado }}</td>
+                <td>{{ oe.usuario }}</td>
+            </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+        {% if ordentrabajo.ultimo_estado.estado.tipo_estado != "Final" %}
+        <div>
+            <a class="btn btn-primary" href="{% url 'orden_trabajo_estado' ordentrabajo.pk %}">Cambiar estado</a>
+        </div>
+        {% endif %}
+    </div>
+{% endblock %}

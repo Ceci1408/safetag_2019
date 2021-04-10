@@ -1,0 +1,33 @@
+{% extends "listas/base_lista.html" %}
+
+{% block content %}
+<h3>{{ titulo }} </h3>
+<table class="table is-fullwidth">
+    <thead>
+        <tr>
+            <th>ID</th>
+            <th>Nombre</th>
+            <th>Apellido</th>
+            <th>Fecha de alta</th>
+            <th>Origen</th>
+        </tr>
+    </thead>
+    <tbody>
+    {% for c in page_obj %}
+        <tr>
+            <td>
+                <a href="{% url 'detalle_cliente' c.pk %}">{{ c.pk }}</a>
+            </td>
+            <td>{{ c.cliente_nombre }}</td>
+            <td>{{ c.cliente_apellido }}</td>
+            <td>{{ c.cliente_fecha_alta }}</td>
+            <td>{{ c.get_cliente_origen_display }}</td>
+        </tr>
+    {% empty %}
+        <tr>
+            <td>Sin clientes</td>
+        </tr>
+    {% endfor %}
+    </tbody>
+</table>
+{% endblock %}

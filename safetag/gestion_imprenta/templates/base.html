@@ -1,28 +1,53 @@
+<!DOCTYPE html>
 {% load static %}
 <html>
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>{% block title %} Título por defecto {% endblock %}</title>
-    <link rel="stylesheet" type="text/css" href="{% static 'css/gestion_imprenta.css' %}">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.2/css/bulma.min.css">
     {% block stylesheet %}
     {% endblock %}
 </head>
 <body>
- {% block content %}
-  Test de bloque!!
- {% endblock %}
+      <nav class="navbar" role="navigation" aria-label="main navigation">
+          <div class="navbar-menu is-active">
+              <div class="navbar-start">
+                  <a class="navbar-item" href="{% url 'clientes' %}">Clientes</a>
+                  <a class="navbar-item" href="{% url 'solicitudes' %}">Solicitudes</a>
+                  <a class="navbar-item" href="{% url 'trabajos' %}">Trabajos</a>
+                  <a class="navbar-item" href="{% url 'presupuestos' %}">Presupuestos</a>
+              </div>
+          </div>
+          <div class="navbar-end">
+              <div class="navbar-item">
+                <div class="buttons">
+                  <a class="button is-primary">
+                    <strong>Salir</strong>
+                  </a>
+                </div>
+              </div>
+            </div>
+      </nav>
 
- <script src="https://code.jquery.com/jquery-3.1.0.min.js"></script>
+     {% block content %}
+      Test de bloque!!
+     {% endblock %}
 
- <script
-        type="text/javascript" src="{% static "js/funciones.js" %}">
- </script>
+    {% block pagination %}
 
- <script>
-{% block javascript %}
+    {% endblock %}
 
-{% endblock %}
-</script>
+     <script src="https://code.jquery.com/jquery-3.1.0.min.js"></script>
 
+     <script
+            type="text/javascript" src="{% static "js/funciones.js" %}">
+     </script>
+
+     <script>
+    {% block javascript %}
+
+    {% endblock %}
+    </script>
 </body>
 </html>

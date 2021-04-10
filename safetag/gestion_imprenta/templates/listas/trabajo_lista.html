@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+
+{% block title %}
+    {{ titulo }}
+{% endblock %}
+
+{% block content %}
+<h2>{{ nombre_modelo }}</h2>
+<table class="table is-fullwidth">
+    <thead>
+        <tr>
+            <th>ID</th>
+            <th>Trabajo</th>
+            <th>Autoadhesivo</th>
+            <th>Impresión</th>
+            <th>Circular</th>
+            <th>Activo</th>
+        </tr>
+    </thead>
+    <tbody>
+    {% for t in page_obj %}
+        <tr>
+            <td>
+                <a href="{% url 'detalle_trabajo' t.pk %}">{{ t.pk }}</a>
+            </td>
+            <td>{{ t.trabajo_descripcion }}</td>
+            <td>{{ t.autoadhesivo_flg|yesno:"Si,No" }}</td>
+            <td>{{ t.doble_cara_flg|yesno:"Doble faz,Simple faz" }}</td>
+            <td>{{ t.circular_flg|yesno:"Si,No" }}</td>
+            <td>{{ t.flg_activo|yesno:"Si,No" }}</td>
+        </tr>
+    {% empty %}
+        <tr>
+            <td>Sin trabajos</td>
+        </tr>
+    {% endfor %}
+    </tbody>
+</table>
+<div class="pagination">
+    <span class="step-links">
+        {% if page_obj.has_previous %}
+            <a href="?page=1">&laquo; Primer página</a>
+            <a href="?page={{ page_obj.previous_page_number }}">Página anterior</a>
+        {% endif %}
+
+        <span class="current">
+            Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}.
+        </span>
+
+        {% if page_obj.has_next %}
+            <a href="?page={{ page_obj.next_page_number }}">Página siguiente</a>
+            <a href="?page={{ page_obj.paginator.num_pages }}">Última página &raquo;</a>
+        {% endif %}
+    </span>
+</div>
+{% endblock %}

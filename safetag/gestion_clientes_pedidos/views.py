@@ -3,7 +3,8 @@ from django.http import JsonResponse, HttpResponse
 from django.shortcuts import render, redirect
 
 from .models import Material, Cantidad, \
-    SolicitudPresupuestoForm, MedidaEstandar, Trabajo, SpTerminacionesFormset, SpContactoFormset, Cliente
+    SolicitudPresupuestoForm, MedidaEstandar, Trabajo, SpTerminacionesFormset, SpContactoFormset, Cliente, \
+    ColorImpresion, Envio, Terminacion
 
 
 def index(request):
@@ -11,6 +12,14 @@ def index(request):
 
 
 def alta_solicitud_presupuesto(request):
+    trabajos_vigentes = Trabajo.objects.filter(flg_activo=True)
+    colores_vigentes = ColorImpresion.objects.filter(flg_activo=True)
+    materiales_vigentes = Material.objects.filter(flg_activo=True)
+    envios_vigentes = Envio.objects.filter(flg_activo=True)
+    medidas_vigentes = MedidaEstandar.objects.filter(flg_activo=True)
+    cantidades_vigentes = Cantidad.objects.filter(flg_activo=True)
+    terminaciones_vigentes = Terminacion.objects.filter(flg_activo=True)
+
     if request.method == 'POST':
         form_sp = SolicitudPresupuestoForm(request.POST, request.FILES, prefix='sp')
         formset = SpTerminacionesFormset(request.POST, prefix='spt')
@@ -23,6 +32,7 @@ def alta_solicitud_presupuesto(request):
                 cliente_nuevo = Cliente()
                 cliente_nuevo.cliente_nombre = f.cleaned_data.get('prosp_nombre')
                 cliente_nuevo.cliente_apellido = f.cleaned_data.get('prosp_apellido')
+                cliente_nuevo.cliente_origen = 'formulario_presupuesto'
                 cliente_nuevo.save()
                 contacto.cliente = cliente_nuevo
                 contacto.save()
@@ -31,16 +41,28 @@ def alta_solicitud_presupuesto(request):
             solicitud.contacto = contacto
             solicitud.save()
 
-            for f in formset:
-                solicitud_terminacion = f.save(commit=False)
-                solicitud_terminacion.solicitud = solicitud
-                solicitud_terminacion.save()
+            if solicitud.solicitud_terminacion_flg:
+                for f in formset:
+                    solicitud_terminacion = f.save(commit=False)
+                    solicitud_terminacion.solicitud = solicitud
+                    solicitud_terminacion.save()
 
             return redirect(to='thankyou')
 
     else:
         form_sp = SolicitudPresupuestoForm(prefix='sp')
+        form_sp.fields['trabajo'].queryset = trabajos_vigentes
+        form_sp.fields['color_impresion'].queryset = colores_vigentes
+        form_sp.fields['material'].queryset = materiales_vigentes
+        form_sp.fields['envio'].queryset = envios_vigentes
+        form_sp.fields['medida_estandar'].queryset = medidas_vigentes
+        form_sp.fields['cantidad_estandar'].queryset = cantidades_vigentes
+
         formset = SpTerminacionesFormset(prefix='spt')
+
+        for f in formset:
+            f.fields['terminacion'].queryset = terminaciones_vigentes
+
         formset_contacto = SpContactoFormset(prefix='spc')
 
     return render(request, 'alta/alta_solicitud_presupuesto.html', context={'form_sp': form_sp,

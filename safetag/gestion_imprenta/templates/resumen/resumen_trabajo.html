@@ -1,0 +1,30 @@
+<table class="'resumen">
+    <tr>
+        <td>Trabajo</td>
+        <td>{{ trabajo.trabajo_descripcion }}</td>
+    </tr>
+    <tr>
+        <td>Autoadhesivo</td>
+        <td>{{ trabajo.autoadhesivo_flg|yesno:"Si,No" }}</td>
+    </tr>
+    <tr>
+        <td>Admite impresión doble cara</td>
+        <td>{{ trabajo.doble_cara_flg|yesno:"Si,No" }}</td>
+    </tr>
+    <tr>
+        <td>Tiempo de desarrollo (hs)</td>
+        <td>{{ trabajo.tiempo_aprox_hs }}</td>
+    </tr>
+    <tr>
+        <td>Demasía (mm)</td>
+        <td>{{ trabajo.demasia_trabajo_mm }}</td>
+    </tr>
+    <tr>
+        <td>Circular</td>
+        <td>{{ trabajo.circular_flg|yesno:"Si,No" }}</td>
+    </tr>
+    <tr>
+        <td>Activo</td>
+        <td>{{ trabajo.flg_activo|yesno:"Si,No" }}</td>
+    </tr>
+</table>
