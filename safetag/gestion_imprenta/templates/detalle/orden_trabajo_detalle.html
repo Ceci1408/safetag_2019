@@ -6,64 +6,212 @@
 {% endblock %}
 
 {% block content %}
-    <div>
-        {% include "resumen/resumen_orden_trabajo.html" %}
-    </div>
-    <br>
+<section>
+        <ul class="steps has-content-centered">
+            {% if ordentrabajo.ultimo_estado.estado.tipo_estado == "Inicial"%}
+                <li class="steps-segment is-active">
+            {% else %}
+                <li class="steps-segment">
+            {% endif %}
+                    <span class="steps-marker">
+                        <span class="icon">
+                            <i class="far fa-file"></i>
+                        </span>
+                    </span>
+                    <div class="steps-content">
+                        <p class="heading">Nueva orden de trabajo</p>
+                    </div>
+                </li>
+            {% if ordentrabajo.ultimo_estado.estado.tipo_estado == "Intermedio"%}
+                <li class="steps-segment is-active">
+            {% else %}
+                <li class="steps-segment">
+            {% endif %}
+                    <span class="steps-marker">
+                        <span class="icon">
+                            <i class="fas fa-tasks"></i>
+                        </span>
+                    </span>
+                    <div class="steps-content">
+                        <p class="heading">En proceso</p>
+                    </div>
+                </li>
+            {% if ordentrabajo.ultimo_estado.estado.tipo_estado == "Final"%}
+                <li class="steps-segment is-active">
+            {% else %}
+                <li class="steps-segment">
+            {% endif %}
+                    <span class="steps-marker">
+                        <span class="icon">
+                            {% if ordentrabajo.ultimo_estado.estado.estado_descripcion == "Cancelado" %}
+                            <i class="fas fa-ban"></i>
+                        </span>
+                    </span>
+                    <div class="steps-content">
+                        <p class="heading">Cancelado</p>
+                    </div>
+                            {% else %}
+                            <i class="far fa-check-circle"></i>
+                        </span>
+                    </span>
+                    <div class="steps-content">
+                        <p class="heading">Entregado</p>
+                    </div>
+                            {% endif %}
+                </li>
+            </ul>
+    </section>
 
-    <div>
-        <table class="comentarios">
-            <thead>
-            <tr>
-                <th>Fecha</th>
-                <th>Usuario</th>
-                <th>Comentario</th>
-            </tr>
-            </thead>
-            <tbody>
-            {% for c in ordentrabajo.comentario_set.all %}
-            <tr>
-                <td>
-                    {{ c.fecha_comentario }}
-                </td>
-                <td>
-                    {{ c.usuario }}
-                </td>
-                <td>
-                    {{ c.comentario }}
-                </td>
-            </tr>
-            {% endfor %}
-            </tbody>
-        </table>
-        <div>
-            <a class="btn btn-primary" href="{% url 'orden_trabajo_comentarios' ordentrabajo.pk %}">Agregar comentarios</a>
+<div class="columns">
+    <div class="column is-7 ">
+        <div class="column">
+            <section class="section">
+                <h1 class="title">Historial de estados</h1>
+                <div class="table-container">
+                    <table class="table is-fullwidth">
+                        <thead>
+                            <tr>
+                                <th>Estado</th>
+                                <th>Fecha</th>
+                                <th>Usuario</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                        {% for oe in ordentrabajo.ordentrabajoestado_set.all %}
+                        <tr>
+                            <td>{{ oe.estado.estado_descripcion }}</td>
+                            <td>{{ oe.fecha_cambio_estado }}</td>
+                            <td>{{ oe.usuario }}</td>
+                        </tr>
+                        {% endfor %}
+                        </tbody>
+                    </table>
+                    {% if ordentrabajo.ultimo_estado.estado.tipo_estado != "Final" %}
+                    <div>
+                        <a class="button is-primary" href="{% url 'orden_trabajo_estado' ordentrabajo.pk %}">Cambiar estado</a>
+                    </div>
+                    {% endif %}
+                </div>
+            </section>
+        </div>
+        <div class="column">
+            <section class="section">
+            <h1 class="title">Tareas</h1>
+            <div class="table-container">
+                <table class="table is-fullwidth">
+                    <thead>
+                    <tr>
+                        <th>Tarea</th>
+                        <th>Estado</th>
+                        <th>Usuario creador</th>
+                        <th>Fecha creación</th>
+                        <th>Fecha estimada fin</th>
+                        <th>Fecha último cambio</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    {% for tarea in ordentrabajo.tarea_set.all %}
+                    <tr>
+                        <td>
+                            {% if tarea.completa == True %}
+                                    <span style="text-decoration: line-through">{{ tarea.get_tarea_display }}</span>
+                            {% else %}
+                                {{ tarea.get_tarea_display }}
+                            {% endif %}
+                        </td>
+                         <td>
+                            {% if tarea.completa == True %}
+                                <i class="far fa-check-circle"></i>
+                                {% if ordentrabajo.ultimo_estado.estado.tipo_estado != "Final"  %}
+                                <span style="text-decoration: line-through">
+                                    <a href="{% url 'desmarcar_tarea' tarea.pk %}">Para hacer</a>
+                                </span>
+                                {% else %}
+                                <span style="text-decoration: line-through">
+                                    Para hacer
+                                </span>
+                                {% endif %}
+                            {% else %}
+                                <i class="far fa-circle"></i>
+                                {% if ordentrabajo.ultimo_estado.estado.tipo_estado != "Final"  %}
+                                    <a href="{% url 'completar_tarea' tarea.pk %}">Listo</a>
+                                {% else %}
+                                    Listo
+                                {% endif %}
+                            {% endif %}
+                        </td>
+                        <td>{{ tarea.usuario }}</td>
+                        <td>{{ tarea.fecha_creacion }}</td>
+                        <td>{{ tarea.fecha_estimada_fin }}</td>
+                        <td>{{ tarea.fecha_ultima_actualizacion }}</td>
+
+                        {% if ordentrabajo.ultimo_estado.estado.tipo_estado != "Final"  %}
+                        <td>
+                        <span class="icon">
+                             <a href="{% url 'editar_tarea' tarea.pk %}">
+                                 <i class="fas fa-edit"></i>
+                             </a>
+                        </span>
+                        </td>
+                        {% endif %}
+
+                        {% if ordentrabajo.ultimo_estado.estado.tipo_estado != "Final"  %}
+                        <td>
+                        <span class="icon">
+                             <a href="{% url 'eliminar_tarea' tarea.pk %}">
+                                 <i class="fas fa-trash-alt"></i>
+                             </a>
+                        </span>
+                        </td>
+                        {% endif %}
+                    </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% if ordentrabajo.ultimo_estado.estado.tipo_estado != "Final"  %}
+            <div>
+                <a class="button is-primary" href="{% url 'orden_trabajo_tarea' ordentrabajo.pk %}">Crear tarea</a>
+            </div>
+            {% endif %}
+        </section>
         </div>
     </div>
-
-    <div>
-        <table class="historia_estados">
-            <thead>
+    <div class="column">
+        <section class="section">
+        <h1 class="title">Comentarios</h1>
+        <div class="table-container">
+            <table class="table is-fullwidth">
+                <thead>
                 <tr>
-                    <th>Estado</th>
                     <th>Fecha</th>
                     <th>Usuario</th>
+                    <th>Comentario</th>
                 </tr>
-            </thead>
-            <tbody>
-            {% for oe in ordentrabajo.ordentrabajoestado_set.all %}
-            <tr>
-                <td>{{ oe.estado.estado_descripcion }}</td>
-                <td>{{ oe.fecha_cambio_estado }}</td>
-                <td>{{ oe.usuario }}</td>
-            </tr>
-            {% endfor %}
-            </tbody>
-        </table>
-        {% if ordentrabajo.ultimo_estado.estado.tipo_estado != "Final" %}
-        <div>
-            <a class="btn btn-primary" href="{% url 'orden_trabajo_estado' ordentrabajo.pk %}">Cambiar estado</a>
+                </thead>
+                <tbody>
+                {% for c in ordentrabajo.comentario_set.all %}
+                <tr>
+                    <td>
+                        {{ c.fecha_comentario }}
+                    </td>
+                    <td>
+                        {{ c.usuario }}
+                    </td>
+                    <td>
+                        {{ c.comentario }}
+                    </td>
+                </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+            {% if ordentrabajo.ultimo_estado.estado.tipo_estado != "Final"  %}
+            <div>
+                <a class="button is-primary" href="{% url 'orden_trabajo_comentarios' ordentrabajo.pk %}">Agregar comentarios</a>
+            </div>
+            {% endif %}
         </div>
-        {% endif %}
+    </section>
     </div>
+</div>
 {% endblock %}

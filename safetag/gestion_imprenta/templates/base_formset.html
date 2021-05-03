@@ -10,38 +10,43 @@
     <form action="{% url nombre_vista id %}" method="post">
         {% csrf_token %}
         {{ formset.management_form }}
+        <div class="table-container">
+            <table class="table is-fullwidth is-striped">
+            {% for form in formset %}
+                {{ form.id }}
 
-        <table class="table is-fullwidth">
-        {% for form in formset %}
-            {{ form.id }}
-
-            {% if form.errors %}
-              <ul>
-                {% for error in form.errors %}
-                  <li>{{ error }}</li>
+                {% for hidden in form.hidden_fields %}
+                    {{ hidden }}
                 {% endfor %}
-              </ul>
-            {% endif %}
-            {% for hidden in form.hidden_fields %}
-                {{ hidden }}
-            {% endfor %}
-            <thead>
-                <tr>
-                    {% for field in form.visible_fields %}
-                    <th> {{ field.label_tag}}</th>
-                    {% endfor %}
-                </tr>
-            </thead>
-            <tbody>
-                <tr>
-                    {% for field in form.visible_fields %}
-                    <td>{{ field }}</td>
-                    {% endfor %}
-                </tr>
-            </tbody>
-            {% endfor %}
-        </table>
-    <input type="submit" value="Guardar!">
+                <thead>
+                    <tr>
+                        {% for field in form.visible_fields %}
+                        <th> {{ field.label_tag}}</th>
+                        {% endfor %}
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        {% for field in form.visible_fields %}
+                            <td>{{ field }}</td>
+                        {% endfor %}
+                    </tr>
+                    {% if form.errors %}
+                    <tr>
+                        {% for field in form %}
+                        <td>
+                            {% for error in field.errors %}
+                                {{ field.label }}: {{ error|escape }}
+                            {% endfor %}
+                        </td>
+                        {% endfor %}
+                    </tr>
+                    {% endif %}
+                </tbody>
+                {% endfor %}
+            </table>
+        </div>
+    <input class="button is-primary" type="submit" value="Guardar">
     </form>
     {% endblock formulario %}
 

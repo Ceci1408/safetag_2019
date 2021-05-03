@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% load custom_tags %}
+
+{% block title %}
+    {{ titulo }}
+{% endblock %}
+
+{% block content %}
+<section class="section">
+    {% include "resumen/resumen_material.html" %}
+</section>
+<br>
+<section class="section">
+    <h1 class="title">Proveedores</h1>
+    <div class="table-container">
+        <table class="table is-fullwidth">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Proveedor</th>
+                <th>Descripcion</th>
+                <th>Activo</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for prov in material.proveedor_set.all %}
+            <tr>
+                <td>{{ prov.pk}}</td>
+                <td>{{ prov.proveedor_razon_social }}</td>
+                <td>{{ prov.proveedor_descripcion }}</td>
+                <td>{{ d.flg_activo|yesno:"Activo,Inactivo" }}</td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td>Sin proveedores cargados</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    </div>
+</section>
+<br>
+{% endblock %}

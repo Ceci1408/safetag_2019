@@ -1,0 +1,116 @@
+{% extends "base.html" %}
+{% load custom_tags %}
+
+{% block title %}
+    {{ titulo }}
+{% endblock %}
+
+{% block content %}
+<section class="section">
+    {% include "resumen/resumen_proveedor.html" %}
+</section>
+<br>
+<section class="section">
+    <h1 class="title">Direcciones</h1>
+    <div class="table-container">
+        <table class="table is-fullwidth">
+        <thead>
+            <tr>
+                <th>Tipo de domicilio</th>
+                <th>Calle - Altura</th>
+                <th>Localidad</th>
+                <th>Provincia</th>
+                <th>Pais</th>
+                <th>Fecha de carga</th>
+                <th>Activo</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for d in proveedor.domicilio_set.all %}
+            <tr>
+                <td>{{ d.get_tipo_domicilio_display}}</td>
+                <td>{{ d.domicilio_calle }} {{ d.domicilio_altura }}</td>
+                <td>{{ d.localidad }}</td>
+                <td>{{ d.provincia }}</td>
+                <td>{{ d.pais }}</td>
+                <td>{{ d.fecha_carga }}</td>
+                <td>{{ d.flg_activo|yesno:"Activo,Inactivo" }}</td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td>Sin domicilios cargados</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    </div>
+    {% if perms.gestion_imprenta.add_domicilio %}
+        <br>
+        <a class="button is-primary" href="{% url 'proveedor_alta_domicilio' proveedor.pk %}">Agendar direcciones</a>
+    {% endif %}
+</section>
+<br>
+<section class="section">
+    <h1 class="title">Datos de contacto</h1>
+    <div class="table-container">
+        <table class="table is-fullwidth">
+        <thead>
+            <tr>
+                <th>Tipo de contacto</th>
+                <th>Dato de contacto</th>
+                <th>Horario de contacto</th>
+                <th>Fecha de carga</th>
+                <th>Activo</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for c in proveedor.contacto_set.all %}
+            <tr>
+                <td>{{ c.get_tipo_dato_contacto_display}}</td>
+                <td>{{ c.dato_contacto_valor }}</td>
+                <td>{{ c.contacto_horario }}</td>
+                <td>{{ c.fecha_carga }}</td>
+                <td>{{ c.flg_activo|yesno:"Activo,Inactivo" }}</td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td>Sin datos de contacto</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    </div>
+    {% if perms.gestion_imprenta.add_contacto %}
+        <br>
+        <a class="button is-primary" href="{% url 'proveedor_alta_dc' proveedor.pk %}">Agendar datos de contacto</a>
+    {% endif %}
+</section>
+<br>
+<section class="section">
+    <h1 class="title">Materiales que provee</h1>
+    <div class="table-container">
+        <table class="table is-fullwidth">
+            <thead>
+                <tr>
+                    <th>ID de material</th>
+                    <th>Descripción</th>
+                    <th>Costo (u$s)</th>
+                    <th>Fecha de carga</th>
+                    <th>Activo</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for material in proveedor.material_set.all %}
+                <tr>
+                    <td>{{ material.material_id }}</td>
+                    <td>{{ material.material_descripcion }}</td>
+                    <td>{{ material.material_costo_dolar }}</td>
+                    <td>{{ material.fecha_carga }}</td>
+                    <td>{{ material.flg_activo|yesno:"Activo,Inactivo" }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</section>
+{% endblock %}

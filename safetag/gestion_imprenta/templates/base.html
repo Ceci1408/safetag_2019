@@ -4,49 +4,76 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>{% block title %} Título por defecto {% endblock %}</title>
+    <title>
+        {% block title %}
+            Título por defecto
+        {% endblock %}
+    </title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.2/css/bulma.min.css">
+    <link rel="stylesheet" href="https://cdn.rawgit.com/octoshrimpy/bulma-o-steps/master/bulma-steps.css">
+
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.1/css/bulma.min.css">
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.10.22/css/dataTables.bulma.min.css">
+
     {% block stylesheet %}
     {% endblock %}
 </head>
 <body>
-      <nav class="navbar" role="navigation" aria-label="main navigation">
+    <nav class="navbar" role="navigation" aria-label="main navigation">
           <div class="navbar-menu is-active">
               <div class="navbar-start">
-                  <a class="navbar-item" href="{% url 'clientes' %}">Clientes</a>
-                  <a class="navbar-item" href="{% url 'solicitudes' %}">Solicitudes</a>
-                  <a class="navbar-item" href="{% url 'trabajos' %}">Trabajos</a>
-                  <a class="navbar-item" href="{% url 'presupuestos' %}">Presupuestos</a>
+                  {% if perms.gestion_imprenta.view_cliente %}
+                    <a class="navbar-item" href="{% url 'clientes' %}">Clientes</a>
+                  {% endif %}
+                  {% if perms.gestion_imprenta.view_cliente %}
+                    <a class="navbar-item" href="{% url 'proveedores' %}">Proveedores</a>
+                  {% endif %}
+                  {% if perms.gestion_imprenta.view_solicitud %}
+                    <a class="navbar-item" href="{% url 'solicitudes' %}">Solicitudes</a>
+                  {% endif %}
+                  {% if perms.gestion_imprenta.view_trabajo %}
+                    <a class="navbar-item" href="{% url 'trabajos' %}">Trabajos</a>
+                  {% endif %}
+                  {% if perms.gestion_imprenta.view_presupuesto %}
+                    <a class="navbar-item" href="{% url 'presupuestos' %}">Presupuestos</a>
+                  {% endif %}
+                  {% if perms.gestion_imprenta.view_orden_trabajo %}
+                    <a class="navbar-item" href="{% url 'ordenes_trabajo' %}">Órdenes de trabajo</a>
+                  {% endif %}
               </div>
           </div>
-          <div class="navbar-end">
-              <div class="navbar-item">
-                <div class="buttons">
-                  <a class="button is-primary">
-                    <strong>Salir</strong>
-                  </a>
+            <div class="navbar-end">
+                <div class="navbar-item">
+                    <div class="buttons">
+                        <button class="button">{{ request.user }}</button>
+                        <a class="button is-primary" href="{% url 'logout' %}">
+                            <strong>Salir</strong>
+                        </a>
+                    </div>
                 </div>
-              </div>
-            </div>
+          </div>
       </nav>
 
-     {% block content %}
-      Test de bloque!!
-     {% endblock %}
+    {% block content %}
+    Test de bloque!!
+    {% endblock %}
 
     {% block pagination %}
 
     {% endblock %}
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script defer src="https://use.fontawesome.com/releases/v5.3.1/js/all.js"></script>
 
-     <script src="https://code.jquery.com/jquery-3.1.0.min.js"></script>
+    <script src="https://cdn.datatables.net/1.10.22/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/1.10.22/js/dataTables.bulma.min.js"></script>
 
-     <script
-            type="text/javascript" src="{% static "js/funciones.js" %}">
-     </script>
+    <script src="/node_modules/@creativebulma/bulma-collapsible/dist/js/bulma-collapsible.min.js"></script>
 
-     <script>
+    <script type="text/javascript" src="{% static "js/funciones.js" %}"></script>
+
+    <script type="text/javascript">
     {% block javascript %}
-
+        $(".table").DataTable();
     {% endblock %}
     </script>
 </body>

@@ -9,80 +9,86 @@
     {% include "resumen/resumen_presupuesto.html" %}
 
 <br>
-<div>
-    <table class="detalle">
-        <thead>
+<section class="section">
+    <h1 class="title">Historial de estados</h1>
+    <div class="table-container">
+            <table class="table is-fullwidth">
+            <thead>
+                <tr>
+                    <th>Estado</th>
+                    <th>Fecha</th>
+                    <th>Usuario</th>
+                </tr>
+            </thead>
+            <tbody>
+            {% for pe in presupuesto.presupuestoestado_set.all %}
             <tr>
-                <th>Estado</th>
+                <td>{{ pe.estado.estado_descripcion }}</td>
+                <td>{{ pe.fecha_cambio_estado }}</td>
+                <td>{{ pe.usuario }}</td>
+            </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+        {% if presupuesto.ultimo_estado.estado.tipo_estado != "Final" %}
+        <div>
+            <a class="button is-primary" href="{% url 'presupuesto_estado' presupuesto.pk %}">Cambiar estado</a>
+        </div>
+        {% elif not presupuesto.ordentrabajo %}
+        <div>
+            <a class="button is-primary" href="{% url 'presupuesto_orden_trabajo' presupuesto.pk %}">Crear orden de trabajo</a>
+        </div>
+        {% endif %}
+    </div>
+</section>
+<br>
+<section class="section">
+    <h1 class="title">Comentarios</h1>
+    <div class="table-container">
+            <table class="table is-fullwidth">
+            <thead>
+            <tr>
+                <th>Origen</th>
                 <th>Fecha</th>
                 <th>Usuario</th>
+                <th>Comentario</th>
             </tr>
-        </thead>
-        <tbody>
-        {% for pe in presupuesto.presupuestoestado_set.all %}
-        <tr>
-            <td>{{ pe.estado.estado_descripcion }}</td>
-            <td>{{ pe.fecha_cambio_estado }}</td>
-            <td>{{ pe.usuario }}</td>
-        </tr>
-        {% endfor %}
-        </tbody>
-    </table>
-    {% if presupuesto.ultimo_estado.estado.tipo_estado != "Final" %}
-    <div>
-        <a class="btn btn-primary" href="{% url 'presupuesto_estado' presupuesto.pk %}">Cambiar estado</a>
-    </div>
-    {% elif not presupuesto.ordentrabajo %}
-    <div>
-        <a class="btn btn-primary" href="{% url 'presupuesto_orden_trabajo' presupuesto.pk %}">Crear orden de trabajo</a>
-    </div>
-    {% endif %}
-</div>
-<br>
-<div>
-    <table class="detalle">
-        <thead>
-        <tr>
-            <th>Origen</th>
-            <th>Fecha</th>
-            <th>Usuario</th>
-            <th>Comentario</th>
-        </tr>
-        </thead>
-        <tbody>
-        {% for c in presupuesto.comentario_set.all %}
-        <tr>
-            <td>Presupuesto</td>
-            <td>
-                {{ c.fecha_comentario }}
-            </td>
-            <td>
-                {{ c.usuario }}
-            </td>
-            <td>
-                {{ c.comentario }}
-            </td>
-        </tr>
-        {% endfor %}
+            </thead>
+            <tbody>
+            {% for c in presupuesto.comentario_set.all %}
+            <tr>
+                <td>Presupuesto</td>
+                <td>
+                    {{ c.fecha_comentario }}
+                </td>
+                <td>
+                    {{ c.usuario }}
+                </td>
+                <td>
+                    {{ c.comentario }}
+                </td>
+            </tr>
+            {% endfor %}
 
-        {% for c in presupuesto.solicitud.comentario_set.all %}
-        <tr>
-            <td>Solicitud</td>
-            <td>
-                {{ c.fecha_comentario }}
-            </td>
-            <td>
-                {{ c.usuario }}
-            </td>
-            <td>
-                {{ c.comentario }}
-            </td>
-        </tr>
-        {% endfor %}
-        </tbody>
-    </table>
-    <div>
-        <a class="btn btn-primary" href="{% url 'presupuesto_comentarios' presupuesto.pk %}">Agregar comentarios</a>
+            {% for c in presupuesto.solicitud.comentario_set.all %}
+            <tr>
+                <td>Solicitud</td>
+                <td>
+                    {{ c.fecha_comentario }}
+                </td>
+                <td>
+                    {{ c.usuario }}
+                </td>
+                <td>
+                    {{ c.comentario }}
+                </td>
+            </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+        <div>
+            <a class="button is-primary" href="{% url 'presupuesto_comentarios' presupuesto.pk %}">Agregar comentarios</a>
+        </div>
     </div>
-</div>
+</section>
 {% endblock %}

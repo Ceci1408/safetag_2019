@@ -18,13 +18,14 @@ class Cliente(models.Model):
     cliente_origen = models.CharField(choices=ORIGEN, blank=False, default='manual', max_length=25)
 
     class Meta:
+        verbose_name = 'cliente'
+        verbose_name_plural = 'clientes'
         db_table = '"cliente"'
         ordering = ['cliente_id']
         indexes = [
             models.Index(fields=['cliente_nombre', 'cliente_apellido'], name='nombre_apellido_idx'),
             models.Index(fields=['cliente_nombre'], name='nombre_idx')
         ]
-        permissions = [('elegir_origen', 'Elegir origen del cliente')]
 
     def clean(self):
         if not self.cliente_nombre.isalpha():
@@ -96,7 +97,7 @@ class Contacto(models.Model):
     contacto_id = models.AutoField(primary_key=True)
     contacto_horario = models.CharField(max_length=100, blank=True, null=True)
     contacto_comentarios = models.TextField(blank=True, null=True)
-    dato_contacto_valor = models.CharField(max_length=50)
+    dato_contacto_valor = models.CharField(max_length=25)
     tipo_dato_contacto = models.CharField(choices=TIPO_CONTACTO, max_length=25, default='EMAIL')
     cliente = models.ForeignKey(Cliente, on_delete=models.CASCADE, blank=True, null=True)
     proveedor = models.ForeignKey('Proveedor', on_delete=models.CASCADE, blank=True, null=True)
@@ -128,7 +129,7 @@ class Contacto(models.Model):
                 email_valido = False
 
             if not email_valido:
-                raise ValidationError({'dato_contacto_valor': _('El dato de contacto no tiene el formato esperado')})
+                raise ValidationError({'dato_contacto_valor': _('Email inválido')})
 
         if self.tipo_dato_contacto == 'TEL_CEL':
             try:
@@ -137,8 +138,8 @@ class Contacto(models.Model):
             except ValidationError:
                 numero_valido = False
 
-            if not numero_valido:
-                raise ValidationError({'dato_contacto_valor': _('El dato de contacto no tiene el formato esperado')})
+            if not numero_valido or len(str(self.dato_contacto_valor))<8:
+                raise ValidationError({'dato_contacto_valor': _('Número inválido. Ingrese el número sin guiones ni espacios.')})
 
     def unico_tipo_cuenta(self):
         if self.proveedor is not None and self.servicio_tecnico is None or self.cliente is None:
@@ -350,6 +351,7 @@ class Cantidad(models.Model):
         constraints = [
             models.UniqueConstraint(fields=['cantidad'], name='unique_cantidad'),
         ]
+        verbose_name_plural="cantidades"
 
 
 class TrabajoCantidades(models.Model):
@@ -545,10 +547,12 @@ class SolicitudPresupuesto(models.Model):
     medida_estandar = models.ForeignKey(MedidaEstandar, on_delete=models.PROTECT, null=False)
     cantidad_estandar = models.ForeignKey(Cantidad, on_delete=models.PROTECT, null=False)
     maquina_pliego = models.ForeignKey(MaquinaPliego, on_delete=models.PROTECT, blank=True, null=True)
-    contacto = models.ForeignKey(Contacto, on_delete=models.PROTECT, null=False)
+    contactos = models.ManyToManyField(Contacto,through='SolicitudPresupuestoContactos')
 
     class Meta:
         db_table = '"solicitud_presupuesto"'
+        permissions = [('cambiar_maquina_pliego', 'Puede cambiar máquina pliego'),
+                       ('generar_presupuesto', 'Puede generar presupuesto')]
 
     def clean(self):
         if self.trabajo.autoadhesivo_flg and self.solicitud_doble_cara_impresion_flg:
@@ -603,6 +607,20 @@ class SolicitudPresupuesto(models.Model):
         return costo_impresion, costo_materiales, costo_terminaciones
 
 
+class SolicitudPresupuestoContactos(models.Model):
+    solicitud = models.ForeignKey(SolicitudPresupuesto, on_delete=models.PROTECT)
+    contacto = models.ForeignKey(Contacto, on_delete=models.PROTECT)
+    flg_notificacion = models.BooleanField(default=False)
+    fecha_creacion = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = '"solicitud_presupuesto_contacto"'
+        constraints = [
+            models.UniqueConstraint(fields=['flg_notificacion'], condition=models.Q(flg_notificacion=True),
+                                    name='contacto_principal')
+        ]
+
+
 class SolicitudPresupuestoTerminaciones(models.Model):
     solicitud = models.ForeignKey(SolicitudPresupuesto, on_delete=models.PROTECT)
     terminacion = models.ForeignKey(Terminacion, on_delete=models.PROTECT)
@@ -627,7 +645,6 @@ class Presupuesto(models.Model):
     costo_material_dolar = models.DecimalField(max_digits=6, decimal_places=3, blank=False, null=False)
     costo_terminaciones_dolar = models.DecimalField(max_digits=6, decimal_places=3, blank=False, null=False)
     fecha_carga = fecha_carga = models.DateTimeField(auto_now_add=True)
-    cliente = models.ForeignKey(Cliente, on_delete=models.PROTECT)
 
     class Meta:
         db_table = '"presupuesto"'
@@ -678,21 +695,6 @@ class Estado(models.Model):
         return self.estado_descripcion
 
 
-class Subestado(models.Model):
-    subestado_id = models.AutoField(primary_key=True)
-    subestado = models.CharField(max_length=50, blank=False, null=False)
-    estado = models.ForeignKey(to=Estado, on_delete=models.PROTECT,)
-    fecha_carga = models.DateTimeField(auto_now_add=True)
-    flg_activo = models.BooleanField(blank=False, null=False, default=False)
-
-    class Meta:
-        db_table = '"subestado"'
-        constraints = [
-            models.UniqueConstraint(fields=['estado', 'subestado', 'flg_activo'],
-                                    name='unique_subestado'),
-        ]
-
-
 class OrdenTrabajo(models.Model):
     orden_id = models.AutoField(primary_key=True)
     presupuesto = models.OneToOneField(Presupuesto, on_delete=models.PROTECT, blank=True, null=True)
@@ -704,7 +706,7 @@ class OrdenTrabajo(models.Model):
 
     class Meta:
         db_table = '"orden_trabajo"'
-        ordering = ['orden_fecha_creacion']
+        ordering = ['-orden_fecha_creacion']
 
     def ultimo_estado(self):
         ultimo_estado_ot = self.ordentrabajoestado_set.all().order_by('-fecha_cambio_estado')[0]
@@ -720,7 +722,39 @@ class OrdenTrabajoEstado(models.Model):
 
     class Meta:
         db_table = '"orden_trabajo_estados"'
-        ordering = ['orden_trabajo', 'estado']
+        ordering = ['-fecha_cambio_estado']
+
+
+class Tarea(models.Model):
+    tareas = (
+        ('impresion','Impresión'),
+        ('terminaciones', 'Terminaciones'),
+        ('disenio','Diseño')
+    )
+    tarea = models.CharField(choices=tareas, max_length=25, blank=False)
+    orden_trabajo = models.ForeignKey(OrdenTrabajo, on_delete=models.PROTECT)
+    fecha_creacion = models.DateTimeField(auto_now_add=True)
+    fecha_estimada_fin = models.DateField()
+    completa = models.BooleanField(default=False)
+    fecha_ultima_actualizacion = models.DateTimeField(auto_now=True)
+    usuario = models.ForeignKey(User, on_delete=models.PROTECT, null=True)
+
+    class Meta:
+        db_table = '"orden_trabajo_tareas"'
+        ordering = ['orden_trabajo', 'id']
+
+
+class TareaHistorial(models.Model):
+    tarea = models.ForeignKey(Tarea, on_delete=models.PROTECT)
+    usuario = models.ForeignKey(User, on_delete=models.PROTECT)
+    campo_actualizado = models.CharField(max_length=50, blank=False)
+    valor_anterior = models.CharField(max_length=50)
+    valor_actualizado = models.CharField(max_length=50)
+    fecha_registro = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = '"tarea_historial"'
+        ordering = ['tarea', '-fecha_registro']
 
 
 class Comentario(models.Model):

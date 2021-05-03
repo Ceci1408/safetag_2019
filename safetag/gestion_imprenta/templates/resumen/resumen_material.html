@@ -1,0 +1,28 @@
+<div class="table-container">
+    <table class="table is-fullwidth">
+         <tr>
+             <td>ID</td>
+             <td>{{ material.pk }}</td>
+         </tr>
+         <tr>
+             <td>Descripción</td>
+             <td>{{ material.material_descripcion }}</td>
+         </tr>
+         <tr>
+             <td>Alto</td>
+             <td>{{ material.material_alto_mm }}</td>
+         </tr>
+        <tr>
+             <td>Ancho</td>
+             <td>{{ material.material_ancho_mm }}</td>
+         </tr>
+        <tr>
+            <td>Costo (u$s)</td>
+            <td>{{ material.material_costo_dolar }}</td>
+        </tr>
+        <tr>
+            <td>Activo</td>
+            <td>{{ material.material_flg_activo|yesno:"Activo,Inactivo"}}</td>
+        </tr>
+    </table>
+</div>

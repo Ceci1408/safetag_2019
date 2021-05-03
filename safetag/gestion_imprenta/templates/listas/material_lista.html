@@ -1,0 +1,35 @@
+{% extends "listas/base_lista.html" %}
+
+{% block content %}
+<h1 class="title">{{ titulo }} </h1>
+<table class="table is-fullwidth">
+    <thead>
+        <tr>
+            <th>ID</th>
+            <th>Descripción</th>
+            <th>Alto (mm)</th>
+            <th>Ancho (mm)</th>
+            <th>Activo</th>
+            <th>Más detalles</th>
+        </tr>
+    </thead>
+    <tbody>
+    {% for m in lista %}
+        <tr>
+            <td>{{ m.pk }}</td>
+            <td>{{ m.material_descripcion }}</td>
+            <td>{{ m.material_alto_mm }}</td>
+            <td>{{ m.material_ancho_mm }}</td>
+            <td>{{ m.flg_activo|yesno:"Activo,Inactivo" }}</td>
+            <td>
+                <a href="{% url 'detalle_material' m.pk %}">Más detalles</a>
+            </td>
+        </tr>
+    {% empty %}
+        <tr>
+            <td>Sin materiales</td>
+        </tr>
+    {% endfor %}
+    </tbody>
+</table>
+{% endblock %}

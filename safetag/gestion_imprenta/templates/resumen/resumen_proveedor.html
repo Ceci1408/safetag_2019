@@ -1,14 +1,20 @@
- <table class="'resumen">
-     <tr>
+<div class="table-container">
+    <table class="table is-fullwidth">
+        <tr>
          <td>Razón Social</td>
          <td>{{ proveedor.proveedor_razon_social}}</td>
-     </tr>
-     <tr>
+        </tr>
+        <tr>
          <td>Descripción</td>
          <td>{{ proveedor.proveedor_descripcion }}</td>
-     </tr>
-     <tr>
+        </tr>
+        <tr>
          <td>Activo</td>
-         <td>{{ proveedor.flg_activo }}</td>
-     </tr>
- </table>
+         <td>{{ proveedor.flg_activo|yesno:"Activo,Inactivo" }}</td>
+        </tr>
+        <tr>
+            <td>Notas</td>
+            <td>{{ proveedor.nota_1 }}</td>
+        </tr>
+    </table>
+</div>

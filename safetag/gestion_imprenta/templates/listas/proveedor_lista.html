@@ -1,0 +1,39 @@
+{% extends "listas/base_lista.html" %}
+
+{% block content %}
+<h1 class="title">{{ titulo }} </h1>
+<table class="table is-fullwidth">
+    <thead>
+        <tr>
+            <th>ID</th>
+            <th>Razón Social</th>
+            <th>Descripción</th>
+            <th>Fecha de carga</th>
+            <th>Activo</th>
+            <th>Más detalles</th>
+        </tr>
+    </thead>
+    <tbody>
+    {% for prov in lista %}
+        <tr>
+            <td>{{ prov.pk }}</td>
+            <td>{{ prov.proveedor_razon_social }}</td>
+            <td>{{ prov.proveedor_descripcion }}</td>
+            <td>{{ prov.fecha_carga }}</td>
+            <td>{{ prov.flg_activo|yesno:"Activo,Inactivo" }}</td>
+            <td>
+                <span class="icon">
+                     <a href="{% url 'detalle_proveedor' prov.pk %}">
+                         <i class="fas fa-edit"></i>
+                     </a>
+                </span>
+            </td>
+        </tr>
+    {% empty %}
+        <tr>
+            <td>Sin Proveedores</td>
+        </tr>
+    {% endfor %}
+    </tbody>
+</table>
+{% endblock %}

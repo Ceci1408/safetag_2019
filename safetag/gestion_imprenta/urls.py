@@ -16,6 +16,8 @@ urlpatterns = [
          name='proveedor_alta_dc'),
     path('proveedor/<int:id_proveedor>/domicilio', views.proveedor_alta_domicilio,
          name='proveedor_alta_domicilio'),
+    path('proveedores', views.ListaProveedores.as_view(), name='proveedores'),
+    path('proveedor/<slug:pk>', views.DetalleProveedor.as_view(), name='detalle_proveedor'),
 
     path('servicio_tecnico', views.alta_servicio_tecnico, name='alta_servicio_tecnico'),
     path('servicio_tecnico/<int:id_service>/dato_contacto', views.service_alta_dato_contacto, name='st_alta_dc'),
@@ -32,6 +34,8 @@ urlpatterns = [
     path('medida', views.alta_medida_estandar, name='alta_medida_estandar'),
 
     path('material', views.alta_material, name='alta_material'),
+    path('materiales', views.ListaMateriales.as_view(), name='materiales'),
+    path('material/<slug:pk>', views.DetalleMaterial.as_view(), name='detalle_material'),
 
     path('maquina_impresion', views.alta_maq_pliego, name='alta_maq_pliego'),
     path('maquina_impresion/<int:id_maquina>/color', views.maq_pliego_color, name='maq_pliego_color'),
@@ -45,7 +49,6 @@ urlpatterns = [
     path('envio', views.alta_envio, name='alta_envio'),
 
     path('estado', views.alta_estado, name='alta_estado'),
-    path('subestado', views.alta_subestado, name='alta_estado'),
 
     path('solicitudes', views.ListaSolicitudes.as_view(), name='solicitudes'),
     path('solicitud/<slug:pk>/', views.DetalleSolicitudes.as_view(), name='detalle_solicitud'),
@@ -53,6 +56,9 @@ urlpatterns = [
     path('solicitud/<int:id_solicitud>/comentarios', views.solicitud_comentarios, name='solicitud_comentarios'),
     path('solicitud/<int:id_solicitud>/impresion', views.solicitud_maquina_impresion, name='solicitud_impresion'),
     path('solicitud/<int:id_solicitud>/presupuesto', views.solicitud_presupuesto, name='solicitud_presupuesto'),
+    path('solicitud/<int:id_solicitud>/contacto', views.solicitud_contacto, name='solicitud_contacto'),
+    path('solicitud/borrar_contacto/<int:id_contacto>', views.solcitud_contacto_eliminar, name='eliminar_solicitud_contacto'),
+    path('solicitud/editar_contacto/<int:id_solicitud_contacto>', views.solicitud_contacto_edicion, name='editar_solicitud_contacto'),
 
     path('presupuestos', views.ListaPresupuestos.as_view(), name='presupuestos'),
     path('presupuesto/<slug:pk>/', views.DetallePresupuesto.as_view(), name='detalle_presupuesto'),
@@ -64,8 +70,13 @@ urlpatterns = [
     path('ordenes_trabajo', views.ListaOrdenesTrabajo.as_view(), name='ordenes_trabajo'),
     path('orden_trabajo/<slug:pk>/', views.DetalleOrdenTrabajo.as_view(), name='detalle_orden_trabajo'),
     path('orden_trabajo/<int:orden_id>/estado', views.orden_trabajo_estado, name='orden_trabajo_estado'),
-    path('orden_trabajo/<int:orden_id>/subestado', views.orden_trabajo_subsestado, name='orden_trabajo_subestado'),
     path('orden_trabajo/<int:orden_id>/comentarios', views.orden_trabajo_comentarios, name='orden_trabajo_comentarios'),
+    path('orden_trabajo/<int:orden_id>/tarea', views.crear_tarea, name='orden_trabajo_tarea'),
+
+    path('marcar_tarea/<int:tarea_id>/', views.marcar_tarea, name='completar_tarea'),
+    path('desmarcar_tarea/<int:tarea_id>/', views.desmarcar_tarea, name='desmarcar_tarea'),
+    path('eliminar_tarea/<int:tarea_id>', views.eliminar_tarea, name='eliminar_tarea'),
+    path('editar_tarea/<int:tarea_id>', views.editar_tarea, name='editar_tarea'),
 
     path('login/', auth_views.LoginView.as_view(template_name='cuentas/usuario_login.html',
                                                 redirect_field_name='next',

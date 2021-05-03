@@ -1,7 +1,7 @@
 {% extends "listas/base_lista.html" %}
 
 {% block content %}
-<h3>{{ titulo }} </h3>
+<h1 class="title">{{ titulo }} </h1>
 <table class="table is-fullwidth">
     <thead>
         <tr>
@@ -16,7 +16,7 @@
         </tr>
     </thead>
     <tbody>
-    {% for ot in page_obj %}
+    {% for ot in lista %}
         <tr>
             <td>
                 <a href="{% url 'detalle_presupuesto' ot.presupuesto.pk %}">{{ ot.presupuesto.pk }}</a>

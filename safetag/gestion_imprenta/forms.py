@@ -2,7 +2,7 @@ from django.forms import ModelForm, inlineformset_factory
 from django import forms
 from django.utils.translation import gettext_lazy as _
 from .models import *
-
+from django.contrib.admin.widgets import AdminDateWidget
 
 class ClienteForm(ModelForm):
     class Meta:
@@ -18,25 +18,20 @@ class ClienteForm(ModelForm):
 
 
 class DatoContactoForm(ModelForm):
-    field_order = ['tipo_dato_contacto', 'dato_contacto_valor', 'dato_contacto_flg_no_llame', 'contacto_horario',
+    field_order = ['tipo_dato_contacto', 'dato_contacto_valor', 'contacto_horario',
                    'contacto_comentarios', 'flg_activo']
 
     class Meta:
         model = Contacto
-        exclude = ['contacto_id', 'proveedor', 'servicio_tecnico', 'cliente']
+        exclude = ['contacto_id', 'proveedor', 'servicio_tecnico', 'cliente','dato_contacto_flg_no_llame']
         labels = {
             'tipo_dato_contacto': _('Tipo'),
             'dato_contacto_valor': _('Dato de contacto'),
-            'dato_contacto_flg_no_llame': _('No llame'),
             'contacto_horario': _('Horario de contacto'),
             'contacto_comentarios': _('Comentarios'),
             'flg_activo': _('Dato activo')
         }
         widgets = {
-            'dato_contacto_flg_no_llame': forms.Select(choices=[
-                ('si', 'Si'),
-                ('no', 'No'),
-                ('ns_nc', 'Desconoce')]),
             'contacto_comentarios': forms.Textarea(attrs={'rows': 5, 'cols': 15})
         }
         localized_fields = '__all__'
@@ -45,20 +40,21 @@ class DatoContactoForm(ModelForm):
 ClienteContactoInlineFormset = inlineformset_factory(
     Cliente,
     Contacto,
-    extra=3,
-    form=DatoContactoForm
+    extra=1,
+    form=DatoContactoForm,
+    can_delete=False
 )
 
 
 class DomicilioForm(ModelForm):
     field_order = ['tipo_domicilio', 'domicilio_calle', 'domicilio_altura', 'localidad', 'provincia', 'pais',
-                   'domicilio_latitud',
-                   'domicilio_longitud', 'flg_activo']
+                   'flg_activo']
 
     class Meta:
         model = Domicilio
         localized_fields = '__all__'
-        exclude = ['domicilio_id', 'proveedor', 'servicio_tecnico', 'cliente', 'fecha_carga']
+        exclude = ['domicilio_id', 'proveedor', 'servicio_tecnico', 'cliente', 'fecha_carga','domicilio_latitud',
+                   'domicilio_longitud', ]
         labels = {
             'tipo_domicilio': _('Tipo de Domicilio'),
             'domicilio_calle': _('Calle/Ruta'),
@@ -76,7 +72,7 @@ ClienteDomicilioInlineFormset = inlineformset_factory(
     Cliente,
     Domicilio,
     extra=2,
-    can_delete=True,
+    can_delete=False,
     form=DomicilioForm
 )
 
@@ -317,17 +313,6 @@ class EstadoForm(ModelForm):
         }
 
 
-class SubestadoForm(ModelForm):
-    class Meta:
-        model = Subestado
-        exclude = ['subestado_id', 'fecha_carga']
-        labels = {
-            'subestado': _('Subestado'),
-            'estado': _('Estado'),
-            'flg_activo': _('¿Está vigente?')
-        }
-
-
 class TipoTerminacionForm(ModelForm):
     class Meta:
         model = TipoTerminacion
@@ -386,13 +371,21 @@ class SolicitudPresupuestoTerminacionesForm(ModelForm):
         }
         localized_fields = '__all__'
 
-
 TerminacionesSolicitudInlineFormset = inlineformset_factory(
     parent_model=SolicitudPresupuesto,
     model=SolicitudPresupuestoTerminaciones,
     form=SolicitudPresupuestoTerminacionesForm,
     extra=0
 )
+
+
+class SolicitudPresupuestoContactoForm(ModelForm):
+    class Meta:
+        model = SolicitudPresupuestoContactos
+        exclude = ['solicitud', 'contacto','fecha_creacion']
+        labels = {
+            'flg_notificacion':_('Este contacto recibirá las notificaciones')
+        }
 
 
 class ComentariosForm(ModelForm):
@@ -478,3 +471,21 @@ class OrdenTrabajoEstadoForm(ModelForm):
             'estado': _('Nuevo estado')
         }
         localized_fields = '__all__'
+
+
+class DateInput(forms.DateInput):
+    input_type = 'date'
+
+
+class TareaForm(ModelForm):
+    class Meta:
+        model = Tarea
+        fields = ['tarea', 'fecha_estimada_fin', 'completa']
+        labels = {
+            'tarea': _('Tarea a crear'),
+            'fecha_estimada_fin': _('Fecha estimada de finalización'),
+            'completa': _('Tarea completa')
+        }
+        widgets={
+            'fecha_estimada_fin': DateInput()
+        }
