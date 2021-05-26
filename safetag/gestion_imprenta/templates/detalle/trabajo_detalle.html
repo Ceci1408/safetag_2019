@@ -11,17 +11,17 @@
 </div>
 <br>
 <section class="section">
-    <h1 class="title">Datos de contacto</h1>
+    <h1 class="title">Medidas vigentes</h1>
     <div class="table-container">
         <table class="table is-fullwidth">
-        <thead>
+            <thead>
             <tr>
                 <th>Medida 1 (cm)</th>
                 <th>Medida 2 (cm)</th>
                 <th>Medida circular</th>
             </tr>
         </thead>
-        <tbody>
+            <tbody>
             {% for m in trabajo.medidas.all %}
                 {% if m.flg_activo %}
                 <tr>
@@ -36,12 +36,16 @@
             </tr>
             {% endfor %}
         </tbody>
-    </table>
+        </table>
+        {% if perms.gestion_imprenta.change_trabajo %}
+        <br>
+            <a class="button is-primary" href="{% url 'editar_trabajo' trabajo.pk %}">Editar medidas</a>
+        {% endif %}
 </div>
 </section>
 <br>
 <section class="section">
-    <h1 class="title">Datos de contacto</h1>
+    <h1 class="title">Cantidades vigentes</h1>
     <div class="table-container">
         <table class="table is-fullwidth">
         <thead>
@@ -49,6 +53,7 @@
                 <th>Cantidad</th>
                 <th>Descuento</th>
                 <th>Fecha de carga</th>
+                <th>Última modificación</th>
             </tr>
         </thead>
         <tbody>
@@ -58,6 +63,7 @@
                         <td>{{ c.cantidad }}</td>
                         <td>{{ c.descuento }}</td>
                         <td>{{ c.fecha_carga }}</td>
+                        <td>{{ c.fecha_ultima_modificacion }}</td>
                     </tr>
                 {% endif %}
             {% empty %}
@@ -66,39 +72,51 @@
             </tr>
             {% endfor %}
         </tbody>
-    </table>
-</div>
+        </table>
+        {% if perms.gestion_imprenta.add_trabajocantidades and perms.gestion_imprenta.change_trabajocantidades %}
+        <br>
+            <a class="button is-primary" href="{% url 'trabajo_cantidad' trabajo.pk %}">Editar descuentos</a>
+        {% endif %}
+    </div>
 </section>
 <br>
 <section class="section">
-    <h1 class="title">Datos de contacto</h1>
+    <h1 class="title">Terminaciones vigentes</h1>
     <div class="table-container">
         <table class="table is-fullwidth">
-        <thead>
-            <tr>
-                <th>Tipo terminacion</th>
-                <th>Terminacion</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for t in trabajo.trabajoterminaciones_set.all %}
-                {% if t.flg_activo and t.terminacion.flg_activo %}
+            <thead>
                 <tr>
-                    <td>{{ t.terminacion.tipo_terminacion }}</td>
-                    <td>{{ t.terminacion }}</td>
+                    <th>Tipo de terminación</th>
+                    <th>Terminación</th>
+                    <th>Fecha creación</th>
+                    <th>Última modificación</th>
                 </tr>
-                {% endif %}
-            {% endfor %}
-        </tbody>
-    </table>
+            </thead>
+            <tbody>
+                {% for t in trabajo.trabajoterminaciones_set.all %}
+                    {% if t.flg_activo and t.terminacion.flg_activo %}
+                    <tr>
+                        <td>{{ t.terminacion.tipo_terminacion }}</td>
+                        <td>{{ t.terminacion }}</td>
+                        <td>{{ t.fecha_carga }}</td>
+                        <td>{{ t.fecha_ultima_modificacion }}</td>
+                    </tr>
+                    {% endif %}
+                {% endfor %}
+            </tbody>
+        </table>
+        {% if perms.gestion_imprenta.add_trabajoterminaciones and perms.gestion_imprenta.change_trabajoterminaciones %}
+        <br>
+            <a class="button is-primary" href="{% url 'trabajo_terminacion' trabajo.pk %}">Editar terminaciones</a>
+        {% endif %}
 </div>
 </section>
 <br>
 <section class="section">
-    <h1 class="title">Datos de contacto</h1>
+    <h1 class="title">Materiales vigentes</h1>
     <div class="table-container">
         <table class="table is-fullwidth">
-        <thead>
+            <thead>
             <tr>
                 <th>Material</th>
                 <th>Gramaje</th>
@@ -107,7 +125,7 @@
                 <th>Costo (u$s)</th>
             </tr>
         </thead>
-        <tbody>
+            <tbody>
             {% for m in trabajo.materiales.all %}
                 {% if m.flg_activo %}
                     <tr>
@@ -124,21 +142,25 @@
             </tr>
             {% endfor %}
         </tbody>
-    </table>
+        </table>
+        {% if perms.gestion_imprenta.change_trabajo %}
+        <br>
+            <a class="button is-primary" href="{% url 'editar_trabajo' trabajo.pk %}">Editar materiales</a>
+        {% endif %}
 </div>
 </section>
 <br>
 <section class="section">
-    <h1 class="title">Datos de contacto</h1>
+    <h1 class="title">Máquinas de impresión</h1>
     <div class="table-container">
         <table class="table is-fullwidth">
-        <thead>
+            <thead>
             <tr>
                 <th>Marca</th>
                 <th>Descripción</th>
             </tr>
         </thead>
-        <tbody>
+            <tbody>
             {% for m in trabajo.maquinas_pliego.all %}
                 {% if m.flg_activo %}
                     <tr>
@@ -152,7 +174,11 @@
             </tr>
             {% endfor %}
         </tbody>
-    </table>
+        </table>
+        {% if perms.gestion_imprenta.change_trabajo %}
+        <br>
+            <a class="button is-primary" href="{% url 'editar_trabajo' trabajo.pk %}">Editar máquinas de impresión</a>
+        {% endif %}
 </div>
 </section>
 {% endblock %}

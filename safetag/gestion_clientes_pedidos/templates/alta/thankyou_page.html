@@ -1,15 +1,18 @@
-{% extends 'base.html' %}
+{% extends 'base_autogestion.html' %}
 {% block title %} ¡Gracias! {% endblock %}
 
 {% block content %}
 
-<div>
-    <div>¡Muchas gracias!</div>
-    <div> En menos de 48hs hábiles nos estaremos contactando con ud </div>
+<div class="notification is-large is-success">
+    <strong>¡Muchas gracias por su contacto!</strong>
+    <br>
+    <p>En menos de 48hs hábiles nos estaremos comunicando con ud.</p>
+    <br>
+    <p>Recuerde que nuestro horario de atención es de Lunes a Viernes de 9 a 19hs.</p>
 </div>
 
 {% endblock %}
 
 {% block javascript %}
-    setTimeout(redirect, 2000);
+    setTimeout(redirect, 4500);
 {% endblock %}

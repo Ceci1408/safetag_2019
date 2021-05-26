@@ -1,0 +1,35 @@
+{% load static %}
+<nav class="navbar is-link">
+  <div class="container">
+    <div class="navbar-brand">
+      <a class="navbar-item">
+        <img src="{% static 'imagenes/mariposa_logo.png' %}" alt="Logo">
+      </a>
+      <span class="navbar-burger" data-target="navbarMenuHeroB">
+        <span></span>
+        <span></span>
+        <span></span>
+      </span>
+    </div>
+    <div id="navbarMenuHeroB" class="navbar-menu">
+      <div class="navbar-end">
+        <a class="navbar-item" href="{% url 'index_autogestion' %}">Inicio</a>
+        <a class="navbar-item" href="{% url 'alta_sp' %}">Nueva Solicitud</a>
+        <span class="navbar-item">
+          <a class="button is-info is-inverted">
+        <span class="icon">
+          <i class="fab fa-facebook"></i>
+        </span>
+          </a>
+        </span>
+        <span class="navbar-item">
+          <a class="button is-info is-inverted">
+            <span class="icon">
+              <i class="fab fa-instagram"></i>
+            </span>
+          </a>
+      </span>
+      </div>
+    </div>
+  </div>
+</nav>

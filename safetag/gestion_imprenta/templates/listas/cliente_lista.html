@@ -2,32 +2,64 @@
 
 {% block content %}
 <h1 class="title">{{ titulo }} </h1>
-<table id="cliente_tabla" class="table is-fullwidth">
-    <thead>
-        <tr>
-            <th>ID</th>
-            <th>Nombre</th>
-            <th>Apellido</th>
-            <th>Origen</th>
-            <th>Más detalles</th>
-        </tr>
-    </thead>
-    <tbody>
-    {% for c in lista %}
-        <tr>
-            <td>{{ c.pk }}</td>
-            <td>{{ c.cliente_nombre }}</td>
-            <td>{{ c.cliente_apellido }}</td>
-            <td>{{ c.get_cliente_origen_display }}</td>
-            <td>
-                <a href="{% url 'detalle_cliente' c.pk %}">Más detalles</a>
-            </td>
-        </tr>
-    {% empty %}
-        <tr>
-            <td>Sin clientes</td>
-        </tr>
-    {% endfor %}
-    </tbody>
-</table>
+    <table class="table is-fullwidth">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Nombre</th>
+                <th>Apellido</th>
+                <th>Origen</th>
+                <th>Última modificación</th>
+                <th>Más información</th>
+                <th>Editar</th>
+                {% if perms.gestion_imprenta.inactivar_cliente %}
+                <th>Activo</th>
+                {% endif %}
+            </tr>
+        </thead>
+        <tbody>
+        {% for c in lista %}
+            <tr>
+                <td>{{ c.pk }}</td>
+                <td>{{ c.cliente_nombre }}</td>
+                <td>{{ c.cliente_apellido }}</td>
+                <td>{{ c.get_cliente_origen_display }}</td>
+                <td>{{ c.fecha_ultima_modificacion }}</td>
+                <td>
+                    <span class="icon">
+                        <a href="{% url 'detalle_cliente' c.pk %}">
+                            <i class="fas fa-info"></i>
+                        </a>
+                    </span>
+                </td>
+                <td>
+                    <span class="icon">
+                        <a href="{% url 'editar_cliente' c.pk %}">
+                            <i class="fas fa-edit"></i>
+                        </a>
+                    </span>
+                </td>
+                {% if perms.gestion_imprenta.inactivar_cliente and perms.gestion_imprenta.activar_cliente %}
+                <td>
+                    <span class="icon">
+                        {% if c.activo %}
+                        <a href="{% url 'inactivar_cliente' c.pk %}">
+                            <i class="fas fa-toggle-on"></i>
+                        </a>
+                        {% else %}
+                        <a href="{% url 'activar_cliente' c.pk %}">
+                            <i class="fas fa-toggle-off"></i>
+                        </a>
+                        {% endif %}
+                    </span>
+                </td>
+                {% endif %}
+            </tr>
+        {% empty %}
+            <tr>
+                <td>Sin clientes</td>
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
 {% endblock %}

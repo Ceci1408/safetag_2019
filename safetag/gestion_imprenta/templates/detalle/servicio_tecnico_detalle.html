@@ -8,7 +8,7 @@
 {% block content %}
 <section class="section">
     <h4 class="title is-4">Datos</h4>
-    {% include "resumen/resumen_cliente.html" %}
+    {% include "resumen/resumen_service.html" %}
 </section>
 <br>
 <section class="section">
@@ -28,7 +28,7 @@
                 </tr>
             </thead>
             <tbody>
-                {% for d in cliente.domicilio_set.all %}
+                {% for d in st.domicilio_set.all %}
                 <tr>
                     <td>{{ d.get_tipo_domicilio_display}}</td>
                     <td>{{ d.domicilio_calle }} {{ d.domicilio_altura }}</td>
@@ -48,7 +48,7 @@
             </table>
             {% if perms.gestion_imprenta.add_domicilio %}
                 <br>
-                <a class="button is-primary" href="{% url 'cliente_alta_domicilio' cliente.pk %}">Agenda de direcciones</a>
+                <a class="button is-primary" href="{% url 'st_alta_domicilio' st.pk %}">Agenda de direcciones</a>
             {% endif %}
         </div>
         </div>
@@ -68,7 +68,7 @@
             </tr>
         </thead>
         <tbody>
-            {% for c in cliente.contacto_set.all %}
+            {% for c in st.contacto_set.all %}
             <tr>
                 <td>{{ c.get_tipo_dato_contacto_display}}</td>
                 <td>{{ c.dato_contacto_valor }}</td>
@@ -86,71 +86,7 @@
     </div>
     {% if perms.gestion_imprenta.add_contacto %}
         <br>
-        <a class="button is-primary" href="{% url 'cliente_alta_dc' cliente.pk %}">Agenda de contactos</a>
+        <a class="button is-primary" href="{% url 'st_alta_dc' st.pk %}">Agenda de contactos</a>
     {% endif %}
-</section>
-<br>
-<section class="section">
-    <h1 class="title">Solicitudes</h1>
-    <table class="table is-fullwidth">
-        <thead>
-            <tr>
-                <th>ID de solicitud</th>
-                <th>Fecha de solicitud</th>
-                <th>Trabajo</th>
-                <th>Express</th>
-                <th>Envio</th>
-                <th>Presupuestos generados</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for contacto in cliente.contacto_set.all %}
-                {% for s in contacto.solicitudpresupuesto_set.all %}
-                <tr>
-                    <td>{{ s.solicitud_id }}</td>
-                    <td>{{ s.solicitud_fecha }}</td>
-                    <td>{{ s.trabajo }}</td>
-                    <td>{{ s.solicitud_express_flg|yesno:"Urgente,Normal" }}</td>
-                    <td>{{ s.envio }}</td>
-                    <td>{{ s.presupuesto_set.all|length }}</td>
-                </tr>
-                {% endfor %}
-            {% endfor %}
-        </tbody>
-    </table>
-</section>
-<br>
-<section class="section">
-    <h1 class="title">Presupuestos</h1>
-    <table class="table is-fullwidth">
-        <thead>
-            <tr>
-                <th>Fecha generacion</th>
-                <th>Solicitud referencia</th>
-                <th>Precio al cliente</th>
-                <th>Enviado</th>
-                <th>Fecha envío</th>
-                <th>Aceptado</th>
-                <th>Comentarios</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for p in cliente.presupuesto_set.all %}
-            <tr>
-                <td>{{ p.fecha_carga }}</td>
-                <td>{{ p.solicitud.solicitud_id }}</td>
-                <td>{{ p.precio_cliente }}</td>
-                <td>{{ p.presupuesto_enviado_flg|yesno:"Enviado,Sin enviar" }}</td>
-                <td>{{ p.fecha_envio_presupuesto }}</td>
-                <td>{{ p.presupuesto_aceptado_flg|yesno:"Aceptado,Rechazado,Sin Respuesta"}}</td>
-                <td>{{ p.presupuesto_comentarios_rechazo }}</td>
-            </tr>
-            {% empty %}
-            <tr>
-                <td>Sin presupuestos generados</td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
 </section>
 {% endblock %}

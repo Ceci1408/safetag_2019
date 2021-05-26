@@ -1,0 +1,18 @@
+{% extends 'base_autogestion.html' %}
+{% block title %} ¡Muchas solicitudes juntas! {% endblock %}
+
+{% block content %}
+
+<div class="notification is-large is-danger">
+    <strong>Una solicitud con sus datos de contacto ya ha sido ingresada en menos de una hora.</strong>
+    <br>
+    Para volver a generar una solicitud, con los mismos datos de contacto, reintente más tarde.
+    <br>
+    Gracias
+</div>
+
+{% endblock %}
+
+{% block javascript %}
+    setTimeout(redirect, 5000);
+{% endblock %}

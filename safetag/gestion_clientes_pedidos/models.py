@@ -18,7 +18,7 @@ class SolicitudPresupuestoForm(ModelForm):
         exclude = ['solicitud_email_enviado_flg',
                    'maquina_pliego',
                    'solicitud_terminaciones',
-                   'contacto'
+                   'contactos'
                    ]
 
         labels = {
@@ -87,6 +87,6 @@ class SolicitudTerminacionesForm(ModelForm):
 
 SpTerminacionesFormset = formset_factory(
     form=SolicitudTerminacionesForm,
-    extra=2,
+    extra=1,
     max_num=3
 )

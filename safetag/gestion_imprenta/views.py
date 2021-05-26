@@ -5,11 +5,62 @@ from django.contrib.auth.decorators import login_required, permission_required
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.views.generic import ListView, DetailView
 from django.contrib import messages
-from datetime import datetime
+from django.db.models import Count, Sum
+from datetime import datetime, timedelta
+from django.utils import timezone
+from django.db.models.functions import TruncDate
 
 
+@login_required
 def index(request):
-    return render(request, 'index.html')
+    solicitudes_hoy = SolicitudPresupuesto.objects.filter(solicitud_fecha__gt=datetime.now().date()-timedelta(days=1))\
+        .values('solicitud_express_flg')\
+        .annotate(q_solicitudes=Count('pk'))\
+        .order_by('solicitud_express_flg')
+
+    presupuestos_por_estado= Presupuesto.objects.order_by().values('ultimo_estado__estado_descripcion')\
+        .annotate(q_presupuestos=Count('pk'))
+
+    solicitudes_mas_48 = SolicitudPresupuesto.objects.filter(
+        solicitud_fecha__lte=datetime.now().date() - timedelta(days=3),presupuesto__isnull=True) \
+        .annotate(date=TruncDate('solicitud_fecha'))\
+        .values('date')\
+        .annotate(q_solicitudes=Count('pk')) \
+        .order_by('date')
+
+    etiquetas_presupuesto= list()
+    datos_presupuesto = list()
+    for dict in list(presupuestos_por_estado):
+        etiqueta, dato = dict.values()
+        etiquetas_presupuesto.append(etiqueta)
+        datos_presupuesto.append(dato)
+
+    etiquetas_solicitudes = list()
+    datos_solicitudes = list()
+
+    for dict in list(solicitudes_mas_48):
+        etiqueta, dato = dict.values()
+        etiquetas_solicitudes.append(etiqueta)
+        datos_solicitudes.append(dato)
+
+    etiquetas_hoy = list()
+    datos_hoy =list()
+
+    for dict in list(solicitudes_hoy):
+        etiqueta, dato = dict.values()
+        etiquetas_hoy.append('Express' if etiqueta else 'Normal')
+        datos_hoy.append(dato)
+
+    return render(request, 'index.html', context={'solicitudes': solicitudes_hoy,
+                                                  'presupuestos': presupuestos_por_estado.aggregate(total=Sum('q_presupuestos')),
+                                                  'solicitudes_sin_ver': solicitudes_mas_48.aggregate(total=Sum('q_solicitudes')),
+                                                  'etiquetas_presupuesto': etiquetas_presupuesto,
+                                                  'datos_presupuesto': datos_presupuesto,
+                                                  'etiquetas_solicitudes': etiquetas_solicitudes,
+                                                  'datos_solicitudes': datos_solicitudes,
+                                                  'etiquetas_hoy': etiquetas_hoy,
+                                                  'datos_hoy': datos_hoy})
+
 
 
 """ Cliente """
@@ -21,12 +72,46 @@ def alta_cliente(request):
         form_cliente = ClienteForm(request.POST)
 
         if form_cliente.is_valid():
-            form_cliente.save()
-            return redirect(to='index')
+            cliente = form_cliente.save(commit=False)
+            cliente.cliente_origen='manual'
+            cliente.save()
+            return redirect(to='clientes_activos')
     else:
         form_cliente = ClienteForm()
-        form_cliente.fields['cliente_origen'].choices = [('manual','Manual')]
     return render(request, 'base_alta_entidad.html', context={'form': form_cliente, 'modelo': 'Cliente'})
+
+
+@login_required
+@permission_required('gestion_imprenta.change_cliente')
+def editar_cliente(request, id_cliente):
+    cliente = Cliente.objects.get(pk=id_cliente)
+
+    if request.method == 'POST':
+        form_cliente = ClienteForm(request.POST, instance=cliente)
+        if form_cliente.is_valid():
+            form_cliente.save()
+            return redirect(to='detalle_cliente', pk=id_cliente)
+    else:
+        form_cliente = ClienteForm(instance=cliente)
+    return render(request, 'base_alta_entidad.html', context={'form': form_cliente, 'modelo': 'Cliente'})
+
+
+@login_required
+@permission_required('gestion_imprenta.inactivar_cliente', 'gestion_imprena.activar_cliente')
+def inactivar_cliente(request, id_cliente):
+    cliente = Cliente.objects.get(pk=id_cliente)
+    cliente.activo = False
+    cliente.save()
+    return redirect(to='clientes_activos')
+
+
+@login_required
+@permission_required('gestion_imprenta.activar_cliente')
+def activar_cliente(request, id_cliente):
+    cliente = Cliente.objects.get(pk=id_cliente)
+    cliente.activo = True
+    cliente.save()
+    return redirect(to='clientes_inactivos')
 
 
 @login_required
@@ -71,8 +156,20 @@ def cliente_alta_domicilio(request, id_cliente):
                                                          'nombre_vista': 'cliente_alta_domicilio'})
 
 
-class ListaClientes(LoginRequiredMixin, ListView):
-    queryset = Cliente.objects.all()
+class ListaClientesActivos(LoginRequiredMixin, ListView):
+    queryset = Cliente.objects.filter(activo=True)
+    template_name = "listas/cliente_lista.html"
+    context_object_name = 'lista'
+
+    def get_context_data(self, **kwargs):
+        # Call the base implementation first to get a context
+        context = super().get_context_data(**kwargs)
+        context['titulo'] = 'Clientes'
+        return context
+
+
+class ListaClientesInactivos(LoginRequiredMixin, ListView):
+    queryset = Cliente.objects.filter(activo=False)
     template_name = "listas/cliente_lista.html"
     context_object_name = 'lista'
 
@@ -100,13 +197,45 @@ class DetalleCliente(LoginRequiredMixin, DetailView):
 def alta_proveedor(request):
     if request.method == 'POST':
         form = ProveedorForm(request.POST)
-
         if form.is_valid():
             form.save()
-            return redirect(to='index')
+            return redirect(to='proveedores_activos')
     else:
         form = ProveedorForm()
     return render(request, 'base_alta_entidad.html', context={'form': form, 'modelo': 'Proveedor'})
+
+
+@login_required
+@permission_required('gestion_imprenta.change_proveedor')
+def editar_proveedor(request, id_proveedor):
+    proveedor = Proveedor.objects.get(pk=id_proveedor)
+
+    if request.method == 'POST':
+        form_proveedor = ProveedorForm(request.POST, instance=proveedor)
+        if form_proveedor.is_valid():
+            form_proveedor.save()
+            return redirect(to='detalle_proveedor', pk=id_proveedor)
+    else:
+        form_proveedor = ProveedorForm(instance=proveedor)
+    return render(request, 'base_alta_entidad.html', context={'form': form_proveedor, 'modelo': 'Proveedor'})
+
+
+@login_required
+@permission_required('gestion_imprenta.inactivar_proveedor')
+def inactivar_proveedor(request, id_proveedor):
+    proveedor = Proveedor.objects.get(pk=id_proveedor)
+    proveedor.flg_activo = False
+    proveedor.save()
+    return redirect(to='proveedores_activos')
+
+
+@login_required
+@permission_required('gestion_imprenta.activar_proveedor')
+def activar_proveedor(request, id_proveedor):
+    proveedor = Proveedor.objects.get(pk=id_proveedor)
+    proveedor.flg_activo = True
+    proveedor.save()
+    return redirect(to='proveedores_inactivos')
 
 
 @login_required
@@ -119,7 +248,7 @@ def proveedor_alta_dato_contacto(request, id_proveedor):
 
         if formset.is_valid():
             formset.save()
-            return redirect(to='index')
+            return redirect(to='detalle_proveedor', pk=proveedor.pk)
         else:
             pass
     else:
@@ -143,7 +272,7 @@ def proveedor_alta_domicilio(request, id_proveedor):
 
         if formset.is_valid():
             formset.save()
-            return redirect(to='index')
+            return redirect(to='detalle_proveedor', pk=proveedor.pk)
     else:
         formset = ProveedorDomicilioInlineFormset(instance=proveedor, prefix='dom')
     return render(request, 'base_formset.html', context={'proveedor': proveedor,
@@ -155,8 +284,20 @@ def proveedor_alta_domicilio(request, id_proveedor):
                                                          'nombre_vista': 'proveedor_alta_domicilio'})
 
 
-class ListaProveedores(LoginRequiredMixin, ListView):
-    queryset = Proveedor.objects.all()
+class ListaProveedoresActivos(LoginRequiredMixin, ListView):
+    queryset = Proveedor.objects.filter(flg_activo=True)
+    template_name = "listas/proveedor_lista.html"
+    context_object_name = 'lista'
+
+    def get_context_data(self, **kwargs):
+        # Call the base implementation first to get a context
+        context = super().get_context_data(**kwargs)
+        context['titulo'] = 'Proveedores'
+        return context
+
+
+class ListaProveedoresInactivos(LoginRequiredMixin, ListView):
+    queryset = Proveedor.objects.filter(flg_activo=False)
     template_name = "listas/proveedor_lista.html"
     context_object_name = 'lista'
 
@@ -191,6 +332,39 @@ def alta_servicio_tecnico(request):
     else:
         form = ServicioTecnicoForm()
     return render(request, 'base_alta_entidad.html', context={'form': form, 'modelo': 'Servicio Técnico'})
+
+
+@login_required
+@permission_required('gestion_imprenta.change_serviciotecnico')
+def editar_servicio_tecnico(request, id_st):
+    st = ServicioTecnico.objects.get(pk=id_st)
+
+    if request.method == 'POST':
+        form_st = ServicioTecnicoForm(request.POST, instance=st)
+        if form_st.is_valid():
+            form_st.save()
+            return redirect(to='service')
+    else:
+        form_st = ServicioTecnicoForm(instance=st)
+    return render(request, 'base_alta_entidad.html', context={'form': form_st, 'modelo': 'Servicio Técnico'})
+
+
+@login_required
+@permission_required('gestion_imprenta.inactivar_servicio_tecnico')
+def inactivar_servicio_tecnico(request, id_st):
+    st = ServicioTecnico.objects.get(pk=id_st)
+    st.flg_activo = False
+    st.save()
+    return redirect(to='st_activos')
+
+
+@login_required
+@permission_required('gestion_imprenta.activar_servicio_tecnico')
+def activar_servicio_tecnico(request, id_st):
+    st = ServicioTecnico.objects.get(pk=id_st)
+    st.flg_activo = True
+    st.save()
+    return redirect(to='st_inactivos')
 
 
 @login_required
@@ -235,9 +409,40 @@ def service_alta_domicilio(request, id_service):
                                                          'nombre_vista': 'st_alta_domicilio'})
 
 
-"""
-    Trabajos
-"""
+class ListaServicioTecnicoActivos(LoginRequiredMixin, ListView):
+    queryset = ServicioTecnico.objects.filter(flg_activo=True)
+    template_name = "listas/serviciotecnico_lista.html"
+    context_object_name = 'lista'
+
+    def get_context_data(self, **kwargs):
+        # Call the base implementation first to get a context
+        context = super().get_context_data(**kwargs)
+        context['titulo'] = 'Servicio Técnico'
+        return context
+
+
+class ListaServicioTecnicoInactivos(LoginRequiredMixin, ListView):
+    queryset = ServicioTecnico.objects.filter(flg_activo=False)
+    template_name = "listas/serviciotecnico_lista.html"
+    context_object_name = 'lista'
+
+    def get_context_data(self, **kwargs):
+        # Call the base implementation first to get a context
+        context = super().get_context_data(**kwargs)
+        context['titulo'] = 'Servicio Técnico'
+        return context
+
+
+class DetalleServicioTecnico(LoginRequiredMixin, DetailView):
+    template_name = 'detalle/servicio_tecnico_detalle.html'
+    queryset = ServicioTecnico.objects.all()
+    context_object_name = 'st'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['titulo'] = context.get('st').servicio_tecnico
+
+        return context
 
 
 @login_required
@@ -250,11 +455,46 @@ def alta_trabajo(request):
 
         if form.is_valid():
             form.save()
-            return redirect(to='index')
+            return redirect(to='trabajos')
     else:
         form = TrabajoForm()
         form.fields['materiales'].queryset = materiales_vigentes
     return render(request, 'base_alta_entidad.html', context={'form': form, 'modelo': 'Trabajo'})
+
+
+@login_required
+@permission_required('gestion_imprenta.change_trabajo', raise_exception=True)
+def editar_trabajo(request, id_trabajo):
+    materiales_vigentes = Material.objects.filter(flg_activo=True)
+    trabajo = Trabajo.objects.get(pk=id_trabajo)
+
+    if request.method == 'POST':
+        form = TrabajoForm(request.POST, instance=trabajo)
+        if form.is_valid():
+            form.save()
+            return redirect(to='trabajos')
+    else:
+        form = TrabajoForm(instance=trabajo)
+        form.fields['materiales'].queryset = materiales_vigentes
+    return render(request, 'base_alta_entidad.html', context={'form': form, 'modelo': 'Trabajo'})
+
+
+@login_required
+@permission_required('gestion_imprenta.inactivar_trabajo')
+def inactivar_trabajo(request, id_trabajo):
+    trabajo = Trabajo.objects.get(pk=id_trabajo)
+    trabajo.flg_activo = False
+    trabajo.save()
+    return redirect(to='trabajos_activos')
+
+
+@login_required
+@permission_required('gestion_imprenta.activar_trabajo')
+def activar_trabajo(request, id_trabajo):
+    trabajo = Trabajo.objects.get(pk=id_trabajo)
+    trabajo.flg_activo = True
+    trabajo.save()
+    return redirect(to='trabajos_inactivos')
 
 
 @login_required
@@ -272,7 +512,8 @@ def alta_cantidad(request):
 
 
 @login_required
-@permission_required('gestion_imprenta.add_trabajocantidades', raise_exception=True)
+@permission_required('gestion_imprenta.add_trabajocantidades', 'gestion_imprenta.change_trabajocantidades',
+                     raise_exception=True)
 def trabajo_cantidad(request, id_trabajo):
     cantidades_vigentes = Cantidad.objects.filter(flg_activo=True)
 
@@ -282,7 +523,7 @@ def trabajo_cantidad(request, id_trabajo):
         formset = TrabajoCantidadInlineFormset(request.POST, instance=trabajo, prefix='tc')
         if formset.is_valid():
             formset.save()
-            return redirect(to='index')
+            return redirect(to='detalle_trabajo', pk=id_trabajo)
     else:
         formset = TrabajoCantidadInlineFormset(instance=trabajo, prefix='tc')
         for f in formset:
@@ -306,7 +547,7 @@ def trabajo_terminacion(request, id_trabajo):
         formset = TrabajoTerminacionInlineFormset(request.POST, instance=trabajo, prefix='tt')
         if formset.is_valid():
             formset.save()
-            return redirect(to='index')
+            return redirect(to='detalle_trabajo', pk=id_trabajo)
     else:
         formset = TrabajoTerminacionInlineFormset(instance=trabajo, prefix='tt')
         for f in formset.forms:
@@ -321,8 +562,20 @@ def trabajo_terminacion(request, id_trabajo):
                                                          'nombre_vista': 'trabajo_terminacion'})
 
 
-class ListaTrabajos(LoginRequiredMixin, ListView):
-    queryset = Trabajo.objects.all()
+class ListaTrabajosActivos(LoginRequiredMixin, ListView):
+    queryset = Trabajo.objects.filter(flg_activo=True)
+    template_name = "listas/trabajo_lista.html"
+    context_object_name = 'lista'
+
+    def get_context_data(self, **kwargs):
+        # Call the base implementation first to get a context
+        context = super().get_context_data(**kwargs)
+        context['titulo'] = 'Trabajos'
+        return context
+
+
+class ListaTrabajosInactivos(LoginRequiredMixin, ListView):
+    queryset = Trabajo.objects.filter(flg_activo=False)
     template_name = "listas/trabajo_lista.html"
     context_object_name = 'lista'
 
@@ -598,6 +851,28 @@ class ListaSolicitudes(LoginRequiredMixin, ListView):
         return context
 
 
+class ListaSolicitudesUrgenes(LoginRequiredMixin, ListView):
+    queryset = SolicitudPresupuesto.objects.filter(solicitud_express_flg=True).order_by('-solicitud_fecha')
+    template_name = "listas/solicitudes_lista.html"
+    context_object_name = 'lista'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['titulo'] = 'Solicitudes Express'
+        return context
+
+
+class ListaSolicitudesDisenio(LoginRequiredMixin, ListView):
+    queryset = SolicitudPresupuesto.objects.filter(solicitud_disenio_flg=True).order_by('-solicitud_fecha')
+    template_name = "listas/solicitudes_lista.html"
+    context_object_name = 'lista'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['titulo'] = 'Solicitudes con Diseño'
+        return context
+
+
 class DetalleSolicitudes(LoginRequiredMixin, DetailView):
     template_name = 'detalle/solicitudes_detalle.html'
     queryset = SolicitudPresupuesto.objects.all()
@@ -606,12 +881,13 @@ class DetalleSolicitudes(LoginRequiredMixin, DetailView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['cantidad_hojas'] = context.get('solicitud').cantidad_hojas_impresion()
-        costo_impresion, costo_material, costo_terminacion = context.get('solicitud').calculo_presupuesto()
+        costo_impresion, costo_material, costo_terminacion, descuento = context.get('solicitud').calculo_presupuesto()
 
         context['costo_impresion'] = costo_impresion
         context['costo_material'] = costo_material
         context['costo_terminaciones'] = costo_terminacion
         context['costo_total_s_disenio'] = costo_impresion + costo_material + costo_terminacion
+        context['descuento'] = descuento
 
         return context
 
@@ -646,7 +922,7 @@ def solicitud_presupuesto(request, id_solicitud):
 
     solicitud = SolicitudPresupuesto.objects.get(pk=id_solicitud)
     cant_hojas = solicitud.cantidad_hojas_impresion()
-    costo_impresion, costo_material, costo_terminacion = solicitud.calculo_presupuesto()
+    costo_impresion, costo_material, costo_terminacion, descuento = solicitud.calculo_presupuesto()
 
     if request.method == 'POST':
         form = PresupuestoForm(request.POST)
@@ -662,8 +938,11 @@ def solicitud_presupuesto(request, id_solicitud):
             if presupuesto.costo_disenio is not None:
                 costo_total_dolar = costo_material + costo_impresion + costo_terminacion + (
                             presupuesto.costo_disenio / presupuesto.cotizacion_dolar)
+
+                costo_total_dolar = costo_total_dolar-(descuento * costo_total_dolar)/100
             else:
                 costo_total_dolar = costo_material + costo_impresion + costo_terminacion
+                costo_total_dolar = costo_total_dolar-(descuento * costo_total_dolar) / 100
                 presupuesto.costo_disenio = 0
 
             presupuesto.costo_total_dolar = costo_total_dolar
@@ -673,9 +952,16 @@ def solicitud_presupuesto(request, id_solicitud):
             costo_total_pesificado.quantize(decimales)
 
             presupuesto.precio_cliente = costo_total_pesificado / (1 - (presupuesto.margen_ganancia / 100))
-            form.save()
+
             estado_creado = Estado.objects.get(tipo_estado='Inicial', flg_activo=True, entidad_asociada='presupuesto')
-            presupuesto.presupuestoestado_set.create(estado=estado_creado, fecha_cambio_estado=datetime.now(),
+            fecha_estado = timezone.now()
+
+            # guardo último estado
+            presupuesto.ultimo_estado = estado_creado
+            presupuesto.fecha_ultimo_estado = fecha_estado
+
+            presupuesto.save()
+            presupuesto.presupuestoestado_set.create(estado=estado_creado, fecha_cambio_estado=fecha_estado,
                                                      usuario=request.user)
 
             return redirect(to='detalle_solicitud', pk=solicitud.pk)
@@ -735,7 +1021,6 @@ def solicitud_contacto_edicion(request, id_solicitud_contacto):
     if request.method == 'POST':
         form_cliente = ClienteForm(request.POST, prefix='cliente', instance=solicitud_contacto.contacto.cliente)
         form_contacto = DatoContactoForm(request.POST, prefix='contacto', instance=solicitud_contacto.contacto)
-        form_cliente.fields['cliente_origen'].choices = [('manual', 'Manual')]
         form_solicitud_contacto = SolicitudPresupuestoContactoForm(request.POST, prefix='sol_contacto',
                                                                    instance=solicitud_contacto)
 
@@ -749,7 +1034,6 @@ def solicitud_contacto_edicion(request, id_solicitud_contacto):
     else:
         form_cliente = ClienteForm(prefix='cliente', instance=solicitud_contacto.contacto.cliente)
         form_contacto = DatoContactoForm(prefix='contacto', instance=solicitud_contacto.contacto)
-        form_cliente.fields['cliente_origen'].choices = [('manual', 'Manual')]
         form_solicitud_contacto = SolicitudPresupuestoContactoForm(prefix='sol_contacto', instance=solicitud_contacto)
 
     return render(request, 'forms_juntos.html', context={'form_1': form_cliente,
@@ -761,13 +1045,14 @@ def solicitud_contacto_edicion(request, id_solicitud_contacto):
 
 
 @login_required
-@permission_required(perm=['gestion_imprenta.delete_solicitudpresupuestocontactos'], raise_exception=True)
+@permission_required(perm=['gestion_imprenta.change_solicitudpresupuestocontactos'], raise_exception=True)
 def solcitud_contacto_eliminar(request, id_contacto):
     solicitud_contacto = SolicitudPresupuestoContactos.objects.get(pk=id_contacto)
-    solicitud = SolicitudPresupuesto.objects.get(pk=solicitud_contacto.solicitud.pk)
-    solicitud_contacto.delete()
+    #solicitud = SolicitudPresupuesto.objects.get(pk=solicitud_contacto.solicitud.pk)
+    solicitud_contacto.flg_activo=False
+    solicitud_contacto.save()
     messages.success(request, ('Task has been Deleted!'))
-    return redirect(to='detalle_solicitud', pk=solicitud.pk)
+    return redirect(to='detalle_solicitud', pk=solicitud_contacto.solicitud.pk)
 
 
 class ListaPresupuestos(LoginRequiredMixin, ListView):
@@ -815,20 +1100,25 @@ def presupuesto_comentarios(request, id_presupuesto):
 @permission_required(perm=['gestion_imprenta.add_presupuestoestado'], raise_exception=True)
 def presupuesto_estado(request, id_presupuesto):
     presupuesto = Presupuesto.objects.get(pk=id_presupuesto)
-    ultimo_estado = presupuesto.ultimo_estado().estado
+    #ultimo_estado = presupuesto.ultimo_estado().estado
     estados_posibles = Estado.objects.filter(entidad_asociada='presupuesto',flg_activo=True,
-                                             estado_secuencia__gt=ultimo_estado.estado_secuencia)
+                                             estado_secuencia__gt=presupuesto.ultimo_estado.estado_secuencia)
 
     if request.method == 'POST':
         form = PresupuestoEstadoForm(request.POST, prefix='pre_est')
 
         if form.is_valid():
-            nuevo_estado = form.save(commit=False)
-            if nuevo_estado.usuario is None:
-                nuevo_estado.usuario = request.user
-                nuevo_estado.presupuesto = presupuesto
-                nuevo_estado.fecha_cambio_estado = datetime.now()
-            form.save()
+            presupuesto_estado_h = form.save(commit=False)
+            fecha_cambio = timezone.now()
+            if presupuesto_estado_h.usuario is None:
+                presupuesto_estado_h.usuario = request.user
+                presupuesto_estado_h.presupuesto = presupuesto
+                presupuesto_estado_h.fecha_cambio_estado = fecha_cambio
+            presupuesto_estado_h.save()
+
+            presupuesto.ultimo_estado = presupuesto_estado_h.estado
+            presupuesto.fecha_ultimo_estado = fecha_cambio
+            presupuesto.save()
         return redirect(to='detalle_presupuesto', pk=presupuesto.pk)
     else:
         form = PresupuestoEstadoForm(prefix='pre_est')

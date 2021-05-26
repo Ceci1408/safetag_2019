@@ -4,6 +4,8 @@ from django.db import models
 from django.contrib.auth.models import User
 from django.utils.translation import gettext_lazy as _
 from math import pow, pi, ceil, floor
+from datetime import datetime
+from django.utils import timezone
 
 
 class Cliente(models.Model):
@@ -15,7 +17,9 @@ class Cliente(models.Model):
     cliente_nombre = models.CharField(max_length=100, blank=False, null=False)
     cliente_apellido = models.CharField(max_length=100, blank=False, null=False)
     cliente_fecha_alta = models.DateTimeField(auto_now_add=True)
-    cliente_origen = models.CharField(choices=ORIGEN, blank=False, default='manual', max_length=25)
+    cliente_origen = models.CharField(choices=ORIGEN, blank=False, default='manual', max_length=25, editable=False)
+    activo = models.BooleanField(default=True, editable=False)
+    fecha_ultima_modificacion = models.DateTimeField(auto_now=True)
 
     class Meta:
         verbose_name = 'cliente'
@@ -26,13 +30,34 @@ class Cliente(models.Model):
             models.Index(fields=['cliente_nombre', 'cliente_apellido'], name='nombre_apellido_idx'),
             models.Index(fields=['cliente_nombre'], name='nombre_idx')
         ]
+        permissions = [
+            ('inactivar_cliente', 'Inactivar cliente'),
+            ('activar_cliente', 'Activar cliente')
+        ]
 
     def clean(self):
-        if not self.cliente_nombre.isalpha():
+        nombres = self.cliente_nombre.split(" ")
+        if not all(p.isalpha() for p in nombres):
             raise ValidationError({'cliente_nombre': _('Sólo se permiten letras')})
 
-        if not self.cliente_apellido.isalpha():
+        apellidos = self.cliente_apellido.split(" ")
+        if not all(p.isalpha() for p in apellidos):
             raise ValidationError({'cliente_apellido': _('Sólo se permiten letras')})
+
+
+class Provincia(models.Model):
+    PAISES = (
+        ('argentina', 'Argentina'),
+    )
+    provincia_id = models.AutoField(primary_key=True)
+    provincia_nombre = models.CharField(max_length=50, blank=False, unique=True)
+    pais = models.CharField(choices=PAISES, blank=False, max_length=50)
+
+    class Meta:
+        db_table = '"provincia"'
+
+    def __str__(self):
+        return self.provincia_nombre
 
 
 class Domicilio(models.Model):
@@ -44,10 +69,10 @@ class Domicilio(models.Model):
     domicilio_id = models.AutoField(primary_key=True)
     domicilio_calle = models.CharField(max_length=100, blank=False)
     domicilio_altura = models.PositiveIntegerField(blank=True, null=True)
+    domicilio_depto = models.CharField(max_length=15, blank=True)
     domicilio_latitud = models.DecimalField(max_digits=12, decimal_places=10, blank=True, null=True)
     domicilio_longitud = models.DecimalField(max_digits=12, decimal_places=10, blank=True, null=True)
-    pais = models.CharField(max_length=25, blank=False)
-    provincia = models.CharField(max_length=25, blank=False)
+    provincia = models.ForeignKey(Provincia, models.PROTECT, blank=False)
     localidad = models.CharField(max_length=25, blank=False)
     cliente = models.ForeignKey(Cliente, models.PROTECT, blank=True, null=True)
     proveedor = models.ForeignKey('Proveedor', models.PROTECT, blank=True, null=True)
@@ -55,6 +80,7 @@ class Domicilio(models.Model):
     flg_activo = models.BooleanField(blank=False, null=False)
     servicio_tecnico = models.ForeignKey('ServicioTecnico', models.PROTECT, blank=True, null=True)
     tipo_domicilio = models.CharField(choices=TIPO_DOMICILIO, null=False, max_length=25, default='fiscal')
+    fecha_ultima_modificacion = models.DateTimeField(auto_now=True)
 
     class Meta:
         db_table = '"domicilio"'
@@ -73,9 +99,6 @@ class Domicilio(models.Model):
         permissions = [('agregar_laitud', 'Agregar Latitud'),
                        ('agregar_longitud', 'Agregar Longitud')]
 
-    def clean(self):
-        if not self.pais.isalpha():
-            raise ValidationError({'pais': _('Sólo se permiten letras')})
 
     def unico_tipo_cuenta(self):
         if self.proveedor is not None and self.servicio_tecnico is None or self.cliente is None:
@@ -120,6 +143,11 @@ class Contacto(models.Model):
                                     name='unique_dc_service'),
         ]
 
+    def solicitudes_asociadas(self):
+        solicitudes = self.solicitudpresupuestocontactos_set.all().order_by('-fecha_creacion')
+        return solicitudes
+
+
     def clean(self):
         if self.tipo_dato_contacto == 'EMAIL':
             try:
@@ -140,6 +168,7 @@ class Contacto(models.Model):
 
             if not numero_valido or len(str(self.dato_contacto_valor))<8:
                 raise ValidationError({'dato_contacto_valor': _('Número inválido. Ingrese el número sin guiones ni espacios.')})
+
 
     def unico_tipo_cuenta(self):
         if self.proveedor is not None and self.servicio_tecnico is None or self.cliente is None:
@@ -173,6 +202,10 @@ class Proveedor(models.Model):
         constraints = [
              models.UniqueConstraint(fields=['proveedor_razon_social'], name='unique_proveedor'),
          ]
+        permissions = [
+            ('inactivar_proveedor', 'Inactivar proveedor'),
+            ('activar_proveedor', 'Activar proveedor'),
+        ]
 
     def __str__(self):
         return self.proveedor_razon_social
@@ -225,7 +258,8 @@ class TipoTerminacion(models.Model):
         ]
 
     def clean(self):
-        if any(tt.isdigit() for tt in self.tipo_terminacion):
+        nombres = self.tipo_terminacion.split(" ")
+        if not all(p.isalpha() for p in nombres):
             raise ValidationError({'tipo_terminacion': _('Sólo se permiten letras')})
 
     def __str__(self):
@@ -250,7 +284,8 @@ class Terminacion(models.Model):
         ]
 
     def clean(self):
-        if any(tt.isdigit() for tt in self.terminacion):
+        nombres = self.terminacionsplit(" ")
+        if not all(p.isalpha() for p in nombres):
             raise ValidationError({'terminacion': _('Sólo se permiten letras')})
 
     def __str__(self):
@@ -272,7 +307,7 @@ class Trabajo(models.Model):
                                              help_text=_('Demasía sugerida para la impresión'))
     circular_flg = models.BooleanField(blank=False, null=False)
     fecha_carga = models.DateTimeField(auto_now_add=True)
-    flg_activo = models.BooleanField(null=False, blank=True, default=False)
+    flg_activo = models.BooleanField(null=False, blank=True, default=False,editable=False)
     medidas = models.ManyToManyField('MedidaEstandar')
     cantidades = models.ManyToManyField('Cantidad', through='TrabajoCantidades')
     terminaciones = models.ManyToManyField(Terminacion, through='TrabajoTerminaciones', related_name='terminaciones')
@@ -281,6 +316,10 @@ class Trabajo(models.Model):
 
     class Meta:
         db_table = '"trabajo"'
+        permissions=[
+            ('inactivar_trabajo', 'Inactivar trabajo'),
+            ('activar_trabajo', 'Activar trabajo'),
+        ]
 
     def clean(self):
         if self.autoadhesivo_flg and self.doble_cara_flg:
@@ -295,6 +334,7 @@ class TrabajoTerminaciones(models.Model):
     terminacion = models.ForeignKey(Terminacion, on_delete=models.PROTECT)
     fecha_carga = models.DateTimeField(auto_now_add=True)
     flg_activo = models.BooleanField(blank=False, null=False, default=False)
+    fecha_ultima_modificacion = models.DateTimeField(auto_now=True)
 
     class Meta:
         db_table = '"trabajo_terminaciones"'
@@ -360,6 +400,7 @@ class TrabajoCantidades(models.Model):
     descuento = models.PositiveSmallIntegerField(blank=True, null=True)
     fecha_carga = models.DateTimeField(auto_now_add=True)
     flg_activo = models.BooleanField(blank=False, null=False, default=False)
+    fecha_ultima_modificacion = models.DateTimeField(auto_now=True)
 
     class Meta:
         db_table = '"trabajo_cantidades"'
@@ -464,16 +505,21 @@ class ServicioTecnico(models.Model):
     servicio_tecnico_id = models.AutoField(primary_key=True)
     servicio_tecnico = models.CharField(max_length=100, blank=False, null=False)
     fecha_carga = models.DateTimeField(auto_now_add=True)
-    flg_activo = models.BooleanField(blank=False, null=False, default=False)
+    flg_activo = models.BooleanField(blank=False, null=False, default=False, editable=False)
 
     class Meta:
         db_table = '"servicio_tecnico"'
         constraints = [
             models.UniqueConstraint(fields=['servicio_tecnico'], name='unique_service'),
         ]
+        permissions = [
+            ('inactivar_servicio_tecnico', 'Inactivar servicio técnico'),
+            ('activar_servicio_tecnico', 'Activar servicio técnico'),
+        ]
 
     def clean(self):
-        if not self.servicio_tecnico.isalpha():
+        nombres = self.servicio_tecnico.split(" ")
+        if not all(p.isalpha() for p in nombres):
             raise ValidationError({'servicio_tecnico': _('Sólo se permiten letras')})
 
     def __str__(self):
@@ -543,7 +589,7 @@ class SolicitudPresupuesto(models.Model):
     trabajo = models.ForeignKey(Trabajo, on_delete=models.PROTECT, null=False)
     color_impresion = models.ForeignKey(ColorImpresion, on_delete=models.PROTECT, null=False)
     material = models.ForeignKey(Material, on_delete=models.PROTECT, null=False)
-    envio = models.ForeignKey(Envio, on_delete=models.PROTECT, blank=True)
+    envio = models.ForeignKey(Envio, on_delete=models.PROTECT, blank=False)
     medida_estandar = models.ForeignKey(MedidaEstandar, on_delete=models.PROTECT, null=False)
     cantidad_estandar = models.ForeignKey(Cantidad, on_delete=models.PROTECT, null=False)
     maquina_pliego = models.ForeignKey(MaquinaPliego, on_delete=models.PROTECT, blank=True, null=True)
@@ -576,6 +622,11 @@ class SolicitudPresupuesto(models.Model):
                                                                    color_impresion=self.color_impresion,
                                                                    flg_activo=True).first()
 
+        instancia_trabajo_cantidad = TrabajoCantidades.objects.filter(trabajo=self.trabajo,
+                                                             cantidad=self.cantidad_estandar,
+                                                             flg_activo=True)\
+            .order_by('-fecha_ultima_modificacion').first()
+
         try:
             costo_impresion = self.cantidad_hojas_impresion() * maquina_pliego_color.costo_dolar
         except AttributeError:
@@ -604,7 +655,7 @@ class SolicitudPresupuesto(models.Model):
                 except AttributeError:
                     costo_terminacion = 0
 
-        return costo_impresion, costo_materiales, costo_terminaciones
+        return costo_impresion, costo_materiales, costo_terminaciones, instancia_trabajo_cantidad.descuento
 
 
 class SolicitudPresupuestoContactos(models.Model):
@@ -612,6 +663,7 @@ class SolicitudPresupuestoContactos(models.Model):
     contacto = models.ForeignKey(Contacto, on_delete=models.PROTECT)
     flg_notificacion = models.BooleanField(default=False)
     fecha_creacion = models.DateTimeField(auto_now_add=True)
+    flg_activo = models.BooleanField(default=True)
 
     class Meta:
         db_table = '"solicitud_presupuesto_contacto"'
@@ -645,15 +697,20 @@ class Presupuesto(models.Model):
     costo_material_dolar = models.DecimalField(max_digits=6, decimal_places=3, blank=False, null=False)
     costo_terminaciones_dolar = models.DecimalField(max_digits=6, decimal_places=3, blank=False, null=False)
     fecha_carga = fecha_carga = models.DateTimeField(auto_now_add=True)
+    estados = models.ManyToManyField('Estado', through='PresupuestoEstado', related_name='pres_historia_estados')
+    ultimo_estado = models.ForeignKey('Estado', on_delete=models.PROTECT,
+                                      limit_choices_to={'entidad_asociada': 'presupuesto'},
+                                      related_name='pres_ultimo_estado', blank=True)
+    fecha_ultimo_estado = models.DateTimeField(default=timezone.now)
 
     class Meta:
         db_table = '"presupuesto"'
         ordering = ['-fecha_carga']
 
-    def ultimo_estado(self):
+'''    def ultimo_estado(self):
         ultimo_estado_presupuesto = self.presupuestoestado_set.all().order_by('-fecha_cambio_estado')[0]
         return ultimo_estado_presupuesto
-
+'''
 
 class PresupuestoEstado(models.Model):
     presupuesto = models.ForeignKey(Presupuesto, on_delete=models.PROTECT)
@@ -702,7 +759,11 @@ class OrdenTrabajo(models.Model):
     orden_impresion_realizada_flg = models.BooleanField(blank=True)
     orden_terminacion_realizada_flg = models.BooleanField(blank=True)
     orden_disenio_realizado_flg = models.BooleanField(blank=True)
-    estados = models.ManyToManyField(Estado, through='OrdenTrabajoEstado')
+    estados = models.ManyToManyField(Estado, through='OrdenTrabajoEstado', related_name='ot_historia_estados')
+    ultimo_estado = models.ForeignKey('Estado', on_delete=models.PROTECT,
+                                      limit_choices_to={'entidad_asociada': 'orden_trabajo'},
+                                      related_name='ot_ultimo_estado', blank=True)
+    fecha_ultimo_estado = models.DateTimeField(default=timezone.now)
 
     class Meta:
         db_table = '"orden_trabajo"'

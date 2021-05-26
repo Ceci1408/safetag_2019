@@ -2,7 +2,7 @@ from django.forms import ModelForm, inlineformset_factory
 from django import forms
 from django.utils.translation import gettext_lazy as _
 from .models import *
-from django.contrib.admin.widgets import AdminDateWidget
+
 
 class ClienteForm(ModelForm):
     class Meta:
@@ -47,7 +47,7 @@ ClienteContactoInlineFormset = inlineformset_factory(
 
 
 class DomicilioForm(ModelForm):
-    field_order = ['tipo_domicilio', 'domicilio_calle', 'domicilio_altura', 'localidad', 'provincia', 'pais',
+    field_order = ['tipo_domicilio', 'domicilio_calle', 'domicilio_altura', 'domicilio_depto', 'localidad', 'provincia', 'pais',
                    'flg_activo']
 
     class Meta:
@@ -59,6 +59,7 @@ class DomicilioForm(ModelForm):
             'tipo_domicilio': _('Tipo de Domicilio'),
             'domicilio_calle': _('Calle/Ruta'),
             'domicilio_altura': _('Altura/Km'),
+            'domicilio_depto': _('Piso/Depto'),
             'localidad': _('Localidad'),
             'provincia': _('Provincia'),
             'pais': _('Pais'),
@@ -102,7 +103,7 @@ ProveedorDomicilioInlineFormset = inlineformset_factory(
     Proveedor,
     Domicilio,
     extra=2,
-    can_delete=True,
+    can_delete=False,
     form=DomicilioForm
 )
 
@@ -130,7 +131,7 @@ ServicioTecnicoDomicilioInlineFormset = inlineformset_factory(
     ServicioTecnico,
     Domicilio,
     extra=2,
-    can_delete=True,
+    can_delete=False,
     form=DomicilioForm
 )
 
@@ -150,6 +151,19 @@ class TrabajoForm(ModelForm):
             'medidas': _('Medidas que admite'),
             'materiales': _('Materiales que admite'),
             'maquinas_pliego': _('¿Con qué máquinas se puede realizar?')
+        }
+        localized_fields = '__all__'
+
+
+class MedidaEstandarForm(ModelForm):
+    class Meta:
+        model = MedidaEstandar
+        exclude = ['medida_estandar_id', 'fecha_carga']
+        labels = {
+            'medida_flg_circular': _('¿Es circular?'),
+            'medida_1_cm': _('Medida 1 (cm)'),
+            'medida_2_cm': _('Medida 2 (cm)'),
+            'flg_activo': _('¿Medida vigente?')
         }
         localized_fields = '__all__'
 
@@ -183,7 +197,7 @@ TrabajoCantidadInlineFormset = inlineformset_factory(
     extra=5,
     max_num=10,
     validate_max=True,
-    can_delete=True
+    can_delete=False
 )
 
 TrabajoTerminacionInlineFormset = inlineformset_factory(
@@ -208,17 +222,7 @@ class CantidadForm(ModelForm):
         localized_fields = '__all__'
 
 
-class MedidaEstandarForm(ModelForm):
-    class Meta:
-        model = MedidaEstandar
-        exclude = ['medida_estandar_id', 'fecha_carga']
-        labels = {
-            'medida_flg_circular': _('¿Es circular?'),
-            'medida_1_cm': _('Medida 1 (cm)'),
-            'medida_2_cm': _('Medida 2 (cm)'),
-            'flg_activo': _('¿Medida vigente?')
-        }
-        localized_fields = '__all__'
+
 
 
 class MaterialForm(ModelForm):
@@ -375,7 +379,8 @@ TerminacionesSolicitudInlineFormset = inlineformset_factory(
     parent_model=SolicitudPresupuesto,
     model=SolicitudPresupuestoTerminaciones,
     form=SolicitudPresupuestoTerminacionesForm,
-    extra=0
+    extra=0,
+    can_delete=False
 )
 
 

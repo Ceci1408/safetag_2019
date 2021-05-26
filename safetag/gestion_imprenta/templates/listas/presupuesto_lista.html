@@ -28,8 +28,8 @@
             <td>{{ p.cotizacion_dolar }}</td>
             <td>{{ p.margen_ganancia }}</td>
             <td>{{ p.precio_cliente }}</td>
-            <td>{{ p.ultimo_estado.estado.estado_descripcion }}</td>
-            <td>{{ p.ultimo_estado.fecha_cambio_estado }}</td>
+            <td>{{ p.ultimo_estado }}</td>
+            <td>{{ p.fecha_ultimo_estado }}</td>
         </tr>
     {% empty %}
         <tr>

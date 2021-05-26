@@ -19,30 +19,90 @@
     {% endblock %}
 </head>
 <body>
-    <nav class="navbar" role="navigation" aria-label="main navigation">
-          <div class="navbar-menu is-active">
-              <div class="navbar-start">
-                  {% if perms.gestion_imprenta.view_cliente %}
-                    <a class="navbar-item" href="{% url 'clientes' %}">Clientes</a>
-                  {% endif %}
-                  {% if perms.gestion_imprenta.view_cliente %}
-                    <a class="navbar-item" href="{% url 'proveedores' %}">Proveedores</a>
-                  {% endif %}
-                  {% if perms.gestion_imprenta.view_solicitud %}
-                    <a class="navbar-item" href="{% url 'solicitudes' %}">Solicitudes</a>
-                  {% endif %}
-                  {% if perms.gestion_imprenta.view_trabajo %}
-                    <a class="navbar-item" href="{% url 'trabajos' %}">Trabajos</a>
-                  {% endif %}
-                  {% if perms.gestion_imprenta.view_presupuesto %}
-                    <a class="navbar-item" href="{% url 'presupuestos' %}">Presupuestos</a>
-                  {% endif %}
-                  {% if perms.gestion_imprenta.view_orden_trabajo %}
-                    <a class="navbar-item" href="{% url 'ordenes_trabajo' %}">Órdenes de trabajo</a>
-                  {% endif %}
-              </div>
-          </div>
-            <div class="navbar-end">
+    <nav class="navbar is-link" role="navigation" aria-label="main navigation">
+         <div class="navbar-brand">
+             <a class="navbar-item" href="{% url 'index'%}">
+                <img src="https://bulma.io/images/bulma-logo.png" alt="Bulma: Free, open source, and modern CSS framework based on Flexbox" width="112" height="28">
+             </a>
+             <a role="button" class="navbar-burger" aria-label="menu" aria-expanded="false" data-target="#opciones_menu">
+                <span aria-hidden="true"></span>
+                <span aria-hidden="true"></span>
+                <span aria-hidden="true"></span>
+             </a>
+         </div>
+
+         <div id="opciones_menu" class="navbar-menu">
+             <div class="navbar-start">
+                {% if perms.gestion_imprenta.view_cliente %}
+                <div class="navbar-item has-dropdown is-hoverable">
+                <a class="navbar-link">Clientes</a>
+                    <div class="navbar-dropdown">
+                        <a class="navbar-item" href="{% url 'alta_cliente' %}">Crear nuevo cliente</a>
+                        <a class="navbar-item" href="{% url 'clientes_activos' %}">Clientes activos</a>
+                        <a class="navbar-item" href="{% url 'clientes_inactivos' %}">Clientes inactivos</a>
+                    </div>
+            </div>
+                {% endif %}
+
+                {% if perms.gestion_imprenta.view_proveedor %}
+                <div class="navbar-item has-dropdown is-hoverable">
+                <a class="navbar-link">Proveedores</a>
+                    <div class="navbar-dropdown">
+                        {% if perms.gestion_imprenta.add_proveedor %}
+                        <a class="navbar-item" href="{% url 'alta_proveedor' %}">Crear nuevo proveedor</a>
+                        {% endif %}
+                        <a class="navbar-item" href="{% url 'proveedores_activos' %}">Proveedores activos</a>
+                        <a class="navbar-item" href="{% url 'proveedores_inactivos' %}">Proveedores inactivos</a>
+                    </div>
+            </div>
+                {% endif %}
+
+                {% if perms.gestion_imprenta.view_serviciotecnico %}
+                <div class="navbar-item has-dropdown is-hoverable">
+                <a class="navbar-link">Servicio técnico</a>
+                    <div class="navbar-dropdown">
+                    {% if perms.gestion_imprenta.add_serviciotecnico %}
+                    <a class="navbar-item" href="{% url 'alta_servicio_tecnico' %}">Crear nuevo servicio técnico</a>
+                    {% endif %}
+                    <a class="navbar-item" href="{% url 'st_activos' %}">Servicio técnico - Activos</a>
+                    <a class="navbar-item" href="{% url 'st_inactivos' %}">Servicio técnico - Inactivos</a>
+            </div>
+            </div>
+                {% endif %}
+
+                {% if perms.gestion_imprenta.view_trabajo %}
+                <div class="navbar-item has-dropdown is-hoverable">
+            <a class="navbar-link">Trabajos</a>
+            <div class="navbar-dropdown">
+            {% if perms.gestion_imprenta.add_trabajo %}
+            <a class="navbar-item" href="{% url 'alta_trabajo' %}">Crear nuevo trabajo</a>
+            {% endif %}
+            <a class="navbar-item" href="{% url 'trabajos_activos' %}">Trabajos activos</a>
+            <a class="navbar-item" href="{% url 'trabajos_inactivos' %}">Trabajos inactivos</a>
+            </div>
+            </div>
+                {% endif %}
+
+                {% if perms.gestion_imprenta.view_solicitud %}
+                <div class="navbar-item has-dropdown is-hoverable">
+                <a class="navbar-link">Solicitudes de presupuesto</a>
+                <div class="navbar-dropdown">
+                <a class="navbar-item" href="{% url 'solicitudes' %}">Listado de solicitudes</a>
+                <a class="navbar-item" href="{% url 'solicitudes_express' %}">Solicitudes express</a>
+                <a class="navbar-item" href="{% url 'solicitudes_disenio' %}">Solicitudes con diseño requerido</a>
+                </div>
+                </div>
+                {% endif %}
+
+                {% if perms.gestion_imprenta.view_presupuesto %}
+                <a class="navbar-item" href="{% url 'presupuestos' %}">Presupuestos</a>
+                {% endif %}
+                {% if perms.gestion_imprenta.view_orden_trabajo %}
+                <a class="navbar-item" href="{% url 'ordenes_trabajo' %}">Órdenes de trabajo</a>
+                {% endif %}
+             </div>
+
+             <div class="navbar-end">
                 <div class="navbar-item">
                     <div class="buttons">
                         <button class="button">{{ request.user }}</button>
@@ -51,30 +111,44 @@
                         </a>
                     </div>
                 </div>
-          </div>
-      </nav>
+            </div>
+         </div>
+    </nav>
 
     {% block content %}
-    Test de bloque!!
+        Test de bloque!!
     {% endblock %}
 
-    {% block pagination %}
-
-    {% endblock %}
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script defer src="https://use.fontawesome.com/releases/v5.3.1/js/all.js"></script>
 
     <script src="https://cdn.datatables.net/1.10.22/js/jquery.dataTables.min.js"></script>
     <script src="https://cdn.datatables.net/1.10.22/js/dataTables.bulma.min.js"></script>
 
-    <script src="/node_modules/@creativebulma/bulma-collapsible/dist/js/bulma-collapsible.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@next/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
+
 
     <script type="text/javascript" src="{% static "js/funciones.js" %}"></script>
 
-    <script type="text/javascript">
+
     {% block javascript %}
+    <script type="text/javascript">
         $(".table").DataTable();
+    </script>
+
     {% endblock %}
+    <script type="text/javascript">
+        $(document).ready(function()
+        {
+
+          // Check for click events on the navbar burger icon
+          $(".navbar-burger").click(function()
+          {
+              $(".navbar-burger").toggleClass("is-active");
+              $(".navbar-menu").toggleClass("is-active");
+          });
+        });
     </script>
 </body>
 </html>

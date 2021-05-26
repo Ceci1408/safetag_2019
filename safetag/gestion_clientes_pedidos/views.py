@@ -1,14 +1,16 @@
+import datetime
+
 from django.core import serializers
 from django.http import JsonResponse, HttpResponse
-from django.shortcuts import render, redirect
+from django.shortcuts import render, redirect, get_object_or_404
 
 from .models import Material, Cantidad, \
     SolicitudPresupuestoForm, MedidaEstandar, Trabajo, SpTerminacionesFormset, SpContactoFormset, Cliente, \
-    ColorImpresion, Envio, Terminacion
+    ColorImpresion, Envio, Terminacion, Contacto
 
 
 def index(request):
-    return HttpResponse("Hello, world. You're at the polls index DESDE GESTION CLIENTES.")
+    return render(request, 'index_autogestion.html')
 
 
 def alta_solicitud_presupuesto(request):
@@ -26,28 +28,44 @@ def alta_solicitud_presupuesto(request):
         formset_contacto = SpContactoFormset(request.POST, prefix='spc')
 
         if form_sp.is_valid() and formset.is_valid() and formset_contacto.is_valid():
-            contacto = None
-            for f in formset_contacto:
-                contacto = f.save(commit=False)
-                cliente_nuevo = Cliente()
-                cliente_nuevo.cliente_nombre = f.cleaned_data.get('prosp_nombre')
-                cliente_nuevo.cliente_apellido = f.cleaned_data.get('prosp_apellido')
-                cliente_nuevo.cliente_origen = 'formulario_presupuesto'
-                cliente_nuevo.save()
-                contacto.cliente = cliente_nuevo
-                contacto.save()
+            solicitud = form_sp.save()
 
-            solicitud = form_sp.save(commit=False)
-            solicitud.contacto = contacto
-            solicitud.save()
+            for form in formset_contacto:
+                tipo_dato_contacto = form.cleaned_data.get('tipo_dato_contacto', None)
+                dato_contacto = form.cleaned_data.get('dato_contacto_valor', None)
+                prosp_nombre = form.cleaned_data.get('prosp_nombre', None)
+                prosp_apellido = form.cleaned_data.get('prosp_apellido', None)
 
-            if solicitud.solicitud_terminacion_flg:
-                for f in formset:
-                    solicitud_terminacion = f.save(commit=False)
-                    solicitud_terminacion.solicitud = solicitud
-                    solicitud_terminacion.save()
+                try:
+                    contacto = Contacto.objects.get(tipo_dato_contacto=tipo_dato_contacto,
+                                                    dato_contacto_valor=dato_contacto, cliente__isnull=False)
+                except Contacto.DoesNotExist:
+                    contacto = Contacto(tipo_dato_contacto=tipo_dato_contacto, dato_contacto_valor=dato_contacto)
+                    cliente_nuevo = Cliente()
+                    cliente_nuevo.cliente_nombre = prosp_nombre
+                    cliente_nuevo.cliente_apellido = prosp_apellido
+                    cliente_nuevo.cliente_origen = 'formulario_presupuesto'
+                    cliente_nuevo.save()
+                    contacto.cliente = cliente_nuevo
+                    contacto.save()
+                finally:
+                    solicitudes = contacto.solicitudes_asociadas()
 
-            return redirect(to='thankyou')
+                    if solicitudes:
+                        tz_info = solicitudes[0].fecha_creacion.tzinfo
+                        # si el mismo dato de contacto se usó en un form hace menos de una hora, no avanza
+                        if (datetime.datetime.now(tz_info) - solicitudes[0].fecha_creacion).total_seconds() / 3600 < 1:
+                            return redirect(to='reintento')
+
+                    solicitud.contactos.add(contacto)
+
+                    if solicitud.solicitud_terminacion_flg:
+                        for f in formset:
+                            solicitud_terminacion = f.save(commit=False)
+                            solicitud_terminacion.solicitud = solicitud
+                            solicitud_terminacion.save()
+
+                    return redirect(to='thankyou')
 
     else:
         form_sp = SolicitudPresupuestoForm(prefix='sp')
@@ -91,3 +109,7 @@ def carga_relaciones(request):
 
 def thankyoupage(request):
     return render(request, 'alta/thankyou_page.html')
+
+
+def reintento(request):
+    return render(request, 'alta/reintento.html')

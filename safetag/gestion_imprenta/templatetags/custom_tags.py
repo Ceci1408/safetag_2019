@@ -5,7 +5,8 @@ register = template.Library()
 
 @register.filter(name='check_maquina_terminacion')
 def check_maquina_terminacion(value):
-    return any(x.maquina_terminacion is None for x in value)
+    a = any(x.maquina_terminacion is None for x in value)
+    return a
 
 
 @register.filter(name='check_presupuesto_sin_aceptar')

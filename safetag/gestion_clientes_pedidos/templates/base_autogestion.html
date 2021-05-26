@@ -1,32 +1,24 @@
-{% load static %}
+<!DOCTYPE html>
 <html>
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    {% load static %}
     <title>{% block title %} Título por defecto {% endblock %}</title>
-    <link rel="stylesheet" type="text/css" href="{% static 'css/gestion_imprenta.css' %}">
+
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.2/css/bulma.min.css">
     {% block stylesheet %}
     {% endblock %}
 </head>
 <body>
-    <header>
-      <nav aria-labelledby="primary-navigation">
-          <h3 id="primary-navigation">Panel de navegación</h3>
-        <ul>
-            <li><a href="{% url 'index_autogestion' %}">Inicio</a></li>
-            <li><a href="{% url 'alta_sp' %}">Nueva Solicitud</a></li>
-        </ul>
-      </nav>
-    </header>
-
-     {% block content %}
-      Test de bloque!!
-     {% endblock %}
-
-    {% block pagination %}
+    {% include 'alta/navbar.html' %}
+    {% block content %}
 
     {% endblock %}
 
-     <script src="https://code.jquery.com/jquery-3.1.0.min.js"></script>
+
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script defer src="https://use.fontawesome.com/releases/v5.3.1/js/all.js"></script>
 
      <script
             type="text/javascript" src="{% static "js/funciones.js" %}">

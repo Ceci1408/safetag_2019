@@ -61,11 +61,25 @@
         <tr>
             <td>Máquina elegida para imprimir</td>
             {% if solicitud.maquina_pliego is None and not solicitud.presupuesto_set.all|check_presupuesto_sin_aceptar %}
-                <td><a class="button is-primary" href="{% url 'solicitud_impresion'  solicitud.pk %}">Elegir máquina para imprimir</a></td>
+                <td>
+                    <a class="button is-primary is-focused" href="{% url 'solicitud_impresion'  solicitud.pk %}">
+                        <span class="icon is-small">
+                                <i class="far fa-hand-point-up"></i>
+                        </span>
+                        <span>Elegir máquina para imprimir</span>
+                    </a>
+                </td>
             {% else %}
                 <td>{{ solicitud.maquina_pliego }}</td>
                 {% if not solicitud.presupuesto_set.all|check_presupuesto_sin_aceptar %}
-                    <td><a class="button is-primary" href="{% url 'solicitud_impresion'  solicitud.pk %}">Cambiar máquina para imprimir</a></td>
+                    <td>
+                        <a class="button is-primary is-focused" href="{% url 'solicitud_impresion'  solicitud.pk %}">
+                            <span class="icon is-small">
+                                <i class="fas fa-edit"></i>
+                            </span>
+                            <span>Cambiar máquina para imprimir</span>
+                        </a>
+                    </td>
                 {% endif %}
             {% endif %}
         </tr>
@@ -93,7 +107,9 @@
                 <td>{{ t.doble_cara_flg|yesno:"Doble,Simple"}}</td>
                 <td>{{ t.comentarios }} </td>
                 {% if t.maquina_terminacion is None and not solicitud.presupuesto_set.all|check_presupuesto_sin_aceptar%}
-                    <td><a class="button is-primary" href="{% url 'solicitud_terminaciones'  solicitud.pk %}">Elegir máquina de terminación</a></td>
+                    <td>
+                        <span>Elegir máquina de terminación</span>
+                    </td>
                 {% else %}
                     <td>{{ t.maquina_terminacion }}</td>
                 {% endif %}
@@ -105,7 +121,12 @@
     </table>
     {% if not solicitud.presupuesto_set.all|check_presupuesto_sin_aceptar %}
         <div>
-            <a class="button is-primary" href="{% url 'solicitud_terminaciones' solicitud.pk %}">Editar máquinas para terminaciones</a>
+            <a class="button is-primary" href="{% url 'solicitud_terminaciones' solicitud.pk %}">
+                 <span class="icon is-small">
+                                <i class="far fa-hand-point-up"></i>
+                 </span>
+                <span>Editar máquinas para terminaciones</span>
+            </a>
         </div>
     {% endif %}
     </div>
@@ -114,7 +135,34 @@
 {% endif %}
 <section class="section">
     <h1 class="title">Adjuntos</h1>
-Acá van los adjuntos
+
+    <div class="tile is-ancestor">
+        <div class="tile is-parent">
+    <article class="tile is-child box">
+      <p class="title">Hello World</p>
+      <p class="subtitle">What is up?</p>
+        <div class="content">
+            <figure class="image is-4by3">
+        </figure>
+        </div>
+    </article>
+  </div>
+        <div class="tile is-parent">
+    <article class="tile is-child box">
+      <p class="title">Foo</p>
+      <p class="subtitle">Bar</p>
+    </article>
+  </div>
+        <div class="tile is-parent">
+    <article class="tile is-child box">
+      <p class="title">Third column</p>
+      <p class="subtitle">With some content</p>
+      <div class="content">
+        <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Proin ornare magna eros, eu pellentesque tortor vestibulum ut. Maecenas non massa sem. Etiam finibus odio quis feugiat facilisis.</p>
+      </div>
+    </article>
+  </div>
+    </div>
 </section>
 <br>
 <section class="section">
@@ -127,7 +175,8 @@ Acá van los adjuntos
             <th>Contacto</th>
             <th>Dato de contacto</th>
             <th>Conacto principal de la solicitud</th>
-            <th>Borrar</th>
+            <th>Editar</th>
+            <th>Eliminar</th>
         </tr>
         </thead>
         <tbody>
@@ -156,7 +205,12 @@ Acá van los adjuntos
         </tbody>
     </table>
     <div>
-            <a class="button is-primary" href="{% url 'solicitud_contacto' solicitud.pk %}">Agregar contactos</a>
+            <a class="button is-primary" href="{% url 'solicitud_contacto' solicitud.pk %}">
+                 <span class="icon is-small">
+                     <i class="fas fa-plus"></i>
+                 </span>
+                <span>Agregar contactos</span>
+            </a>
     </div>
 </div>
 </section>
@@ -175,21 +229,20 @@ Acá van los adjuntos
         <tbody>
         {% for c in solicitud.comentario_set.all %}
         <tr>
-            <td>
-                {{ c.fecha_comentario }}
-            </td>
-            <td>
-                {{ c.usuario }}
-            </td>
-            <td>
-                {{ c.comentario }}
-            </td>
+            <td>{{ c.fecha_comentario }}</td>
+            <td>{{ c.usuario }}</td>
+            <td>{{ c.comentario }}</td>
         </tr>
         {% endfor %}
         </tbody>
     </table>
     <div>
-        <a class="button is-primary" href="{% url 'solicitud_comentarios' solicitud.pk %}">Agregar comentarios</a>
+        <a class="button is-primary" href="{% url 'solicitud_comentarios' solicitud.pk %}">
+            <span class="icon is-small">
+                <i class="fas fa-plus"></i>
+            </span>
+            <span>Agregar comentarios</span>
+        </a>
     </div>
 </div>
 </section>
@@ -203,12 +256,11 @@ Acá van los adjuntos
             <ul>
             {% if maq_impresion is None %}
             <li>Para generar el presupuesto debe elegir con cuál máquina imprimirá</li>
-            {% elif not solicitud.solicitud_terminacion_flg and terminaciones|check_maquina_terminacion %}
+            {% elif solicitud.solicitud_terminacion_flg and terminaciones|check_maquina_terminacion %}
                 <li>Para generar el presupuesto todas las terminaciones deben tener una máquina de terminación</li>
             {% else %}
             </ul>
         </div>
-
 
     <p class="subtitle is-5">Cantidad de presupuestos generados: {{ solicitud.presupuesto_set.all|length }}</p>
         <table class="table is-fullwidth">
@@ -231,6 +283,10 @@ Acá van los adjuntos
             <tr>
                 <td>Costo total sin diseño (u$s)</td>
                 <td>{{ costo_total_s_disenio }}</td>
+            </tr>
+            <tr>
+                <td>Descuento por cantidad por trabajo (%)</td>
+                <td>{{ descuento }}</td>
             </tr>
         </table>
         <table class="table is-fullwidth">

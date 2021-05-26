@@ -15,4 +15,12 @@
         <td>Origen</td>
         <td>{{ cliente.get_cliente_origen_display }}</td>
     </tr>
+    <tr>
+        <td>Situación</td>
+        <td>{{ cliente.activo|yesno:"Activo,Inactivo" }}</td>
+    </tr>
+    <tr>
+        <td>Fecha última modificación</td>
+        <td>{{ cliente.fecha_ultima_modificacion }}</td>
+    </tr>
 </table>

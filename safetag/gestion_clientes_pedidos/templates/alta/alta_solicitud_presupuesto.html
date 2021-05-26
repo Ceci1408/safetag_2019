@@ -2,83 +2,93 @@
 {% block title %} Alta Solicitud Presupuesto {% endblock %}
 
 {% block content %}
-    <form action="{% url 'alta_sp' %}" method="post" relaciones_url="{% url 'material_ddl' %}" id="sp_form" enctype=multipart/form-data>
+<section class="is-large">
+    <div class="container is-fluid">
+        <form action="{% url 'alta_sp' %}" method="post" relaciones_url="{% url 'material_ddl' %}" id="sp_form" enctype=multipart/form-data>
         {% csrf_token %}
-        <table id="tabla_solicitud_presupuesto">
-            {% for field in form_sp %}
-            <tr>
-                <td>
-                    {{ field.label_tag }}
-                </td>
-                <td>
-                    {{ field }}
-                </td>
-                <td>
-                    {{ field.errors }}
-                </td>
-                <td>
-                    {% if field.help_text %}
-                    <p class="help">{{ field.help_text|safe }}</p>
-                    {% endif %}
-                </td>
-            </tr>
-            {% endfor %}
-        </table>
-        <hr>
-        <div id="seccion_terminaciones" style="display: none;">
-            {{ formset.management_form }}
-            <table id="tabla_terminaciones">
+        <h1 class="title">Nueva solicitud </h1>
+            <br>
+            <table class="table is-fullwidth">
+                    {% for field in form_sp %}
+                    <tr>
+                        <td>
+                            {{ field.label_tag }}
+                        </td>
+                        <td>
+                            {{ field }}
+                        </td>
+                        <td>
+                            {{ field.errors }}
+                        </td>
+                        <td>
+                            {% if field.help_text %}
+                            <p class="help">{{ field.help_text|safe }}</p>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </table>
+
+            <div id="seccion_terminaciones"  style="display: none;">
+                {{ formset.management_form }}
+
+                <h1 class="title is-5">Terminaciones</h1>
                 {% for form in formset %}
-                <tr id="fila_terminacion_{{forloop.counter0}}">
-                    <td>{{ form.terminacion.label}} </td>
-                    <td>{{ form.terminacion }} </td>
-                    <td>{{ form.doble_cara_flg.label }}</td>
-                    <td>{{ form.doble_cara_flg }}</td>
-                    <td>{{ form.comentarios.label }}</td>
-                    <td>{{ form.comentarios }}</td>
-                </tr>
-                <tr>
+                <ul>
                     {% for field in form %}
-                    <td>
+                    <li>
                         {{ field.errors }}
-                    </td>
+                    </li>
                     {% endfor %}
-                </tr>
+                </ul>
                 {% endfor %}
-            </table>
-            <div>
-                <button class="nueva_terminacion" onclick="agregar_terminaciones()">Agregar otra terminación</button>
+                <table id="tabla_terminaciones" class="table is-fullwidth">
+                    {% for form in formset %}
+                    <tr id="fila_terminacion_{{ forloop.counter }}">
+                        <td>{{ form.terminacion.label}} </td>
+                        <td>{{ form.terminacion }} </td>
+                        <td>{{ form.doble_cara_flg.label }}</td>
+                        <td>{{ form.doble_cara_flg }}</td>
+                        <td>{{ form.comentarios.label }}</td>
+                        <td>{{ form.comentarios }}</td>
+                    </tr>
+
+                    {% endfor %}
+                </table>
+                <div>
+                    <a class="button is-success" onclick="agregar_terminaciones()">Agregar otra terminación</a>
+                </div>
             </div>
-        </div>
-        <hr>
-        <div id="seccion_contacto">
-            {{ formset_contacto.management_form }}
-            <table id="tabla_contactos">
-                {% for form in formset_contacto %}
-                <tr id="fila_contacto_{{forloop.counter0}}">
-                    <td>{{ form.prosp_nombre.label}} </td>
-                    <td>{{ form.prosp_nombre }} </td>
-                    <td>{{ form.prosp_apellido.label }}</td>
-                    <td>{{ form.prosp_apellido }}</td>
-                    <td>{{ form.tipo_dato_contacto.label }}</td>
-                    <td>{{ form.tipo_dato_contacto }}</td>
-                    <td>{{ form.dato_contacto_valor }}</td>
-                </tr>
-                <tr>
+            <div id="seccion_contacto">
+                {{ formset_contacto.management_form }}
+                {% for form in formset %}
+                <ul>
                     {% for field in form %}
-                    <td>
+                    <li>
                         {{ field.errors }}
-                    </td>
+                    </li>
                     {% endfor %}
-                </tr>
+                </ul>
                 {% endfor %}
-            </table>
-        </div>
-    <br>
-    <input type="submit" value="Continuar..." id="submit_sp">
-    </form>
-
-
+                <table class="table is-fullwidth">
+                    {% for form in formset_contacto %}
+                    <tr id="fila_contacto_{{forloop.counter0}}">
+                        <td>{{ form.prosp_nombre.label}} </td>
+                        <td>{{ form.prosp_nombre }} </td>
+                        <td>{{ form.prosp_apellido.label }}</td>
+                        <td>{{ form.prosp_apellido }}</td>
+                        <td>{{ form.tipo_dato_contacto.label }}</td>
+                        <td>{{ form.tipo_dato_contacto }}</td>
+                        <td>{{ form.dato_contacto_valor }}</td>
+                    </tr>
+                    {% endfor %}
+                </table>
+            </div>
+        <br>
+        <input class="button is-success is-medium is-fullwidth" type="submit" value="Generar solicitud" id="submit_sp">
+        </form>
+    </div>
+</section>
 {% endblock %}
 
 {% block javascript %}

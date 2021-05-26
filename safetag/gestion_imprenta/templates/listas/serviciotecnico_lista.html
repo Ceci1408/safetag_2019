@@ -6,50 +6,46 @@
     <thead>
         <tr>
             <th>ID</th>
-            <th>Trabajo</th>
-            <th>Autoadhesivo</th>
-            <th>Impresión</th>
-            <th>Circular</th>
+            <th>Servicio Técnico</th>
+            <th>Fecha de carga</th>
             <th>Activo</th>
             <th>Más información</th>
             <th>Editar</th>
-            {% if perms.gestion_imprenta.inactivar_trabajo and perms.gestion_imprenta.activar_trabajo %}
+            {% if perms.gestion_imprenta.inactivar_servicio_tecnico and perms.gestion_imprenta.activar_servicio_tecnico %}
             <th>Activo</th>
             {% endif %}
         </tr>
     </thead>
     <tbody>
-    {% for t in lista %}
+    {% for st in lista %}
         <tr>
-            <td>{{ t.pk }}</td>
-            <td>{{ t.trabajo_descripcion }}</td>
-            <td>{{ t.autoadhesivo_flg|yesno:"Si,No" }}</td>
-            <td>{{ t.doble_cara_flg|yesno:"Doble faz,Simple faz" }}</td>
-            <td>{{ t.circular_flg|yesno:"Si,No" }}</td>
-            <td>{{ t.flg_activo|yesno:"Activo,Inactivo" }}</td>
+            <td>{{ st.pk }}</td>
+            <td>{{ st.servicio_tecnico }}</td>
+            <td>{{ st.fecha_carga }}</td>
+            <td>{{ st.flg_activo|yesno:"Activo,Inactivo" }}</td>
             <td>
                 <span class="icon">
-                    <a href="{% url 'detalle_trabajo' t.pk %}">
-                        <i class="fas fa-info"></i>
-                    </a>
+                     <a href="{% url 'detalle_servicio_tecnico' st.pk %}">
+                         <i class="fas fa-info"></i>
+                     </a>
                 </span>
             </td>
             <td>
                 <span class="icon">
-                    <a href="{% url 'editar_trabajo' t.pk %}">
+                    <a href="{% url 'editar_st' st.pk %}">
                         <i class="fas fa-edit"></i>
                     </a>
                 </span>
             </td>
-            {% if perms.gestion_imprenta.inactivar_trabajo and perms.gestion_imprenta.activar_trabajo %}
+            {% if perms.gestion_imprenta.inactivar_servicio_tecnico and perms.gestion_imprenta.activar_servicio_tecnico %}
             <td>
                 <span class="icon">
-                    {% if t.flg_activo %}
-                    <a href="{% url 'inactivar_trabajo' t.pk %}">
+                    {% if st.flg_activo %}
+                    <a href="{% url 'inactivar_st' st.pk %}">
                         <i class="fas fa-toggle-on"></i>
                     </a>
                     {% else %}
-                    <a href="{% url 'activar_trabajo' t.pk %}">
+                    <a href="{% url 'activar_st' st.pk %}">
                         <i class="fas fa-toggle-off"></i>
                     </a>
                     {% endif %}
@@ -59,7 +55,7 @@
         </tr>
     {% empty %}
         <tr>
-            <td>Sin trabajos</td>
+            <td>Sin Servicio Técnico</td>
         </tr>
     {% endfor %}
     </tbody>

@@ -5,7 +5,185 @@
 
 
 {% block content %}
+<br>
+<section class="section">
+<div class="tile is-ancestor">
+  <div class="tile is-parent is-vertical is-5">
+        <article class="tile is-child notification is-danger">
+        <p class="title">Solicitudes</p>
+        <p class="subtitle">Sin presupuestos generados (+ 48hs)</p>
+        <div class="content">
+          Total: {{ solicitudes_sin_ver.total }}
+        </div>
+        <div class="content is-small">
+          <canvas id="chart_sol"  aria-label="Solicitudes sin revisión" role="img"></canvas>
+        </div>
+      </article>
+        <article class="tile is-child notification is-warning">
+          <p class="title">Presupuestos</p>
+          <p class="subtitle">Por estado</p>
+          <div class="content">
+            Total: {{ presupuestos.total }}
+          </div>
+          <div class="content is-small">
+            <canvas id="myChart"  aria-label="Presupuestos por estado" role="img"></canvas>
+          </div>
+        </article>
+  </div>
+  <div class="tile is-parent is-vertical">
+        <article class="tile is-child notification is-primary">
+          <p class="title">Solicitudes</p>
+          <p class="subtitle">Nuevas solicitudes</p>
+            <div class="content">
+                Solicitudes del día de hoy: {{ solicitudes|length }}
+                <div class="content is-small">
+                  <canvas id="chart_sol_hoy"  aria-label="Solicitudes por urgencia" role="img"></canvas>
+                </div>
+            </div>
+        </article>
+        <article class="tile is-child">
+          <figure class="image is-4by3">
+            <img src="https://bulma.io/images/placeholders/640x480.png">
+          </figure>
+        </article>
+  </div>
+  <div class="tile is-parent">
+    <article class="tile is-child notification is-success">
+      <div class="content">
+        <p class="title">Tareas</p>
+        <p class="subtitle">Tareas que están siendo realizadas...</p>
+        <div class="content">
+          <!-- Content -->
+        </div>
+      </div>
+    </article>
+  </div>
+</div>
+</section>
+
+{% endblock %}
 
 
+{% block javascript %}
 
+{{ etiquetas_presupuesto|json_script:"etiquetas" }}
+{{ datos_presupuesto|json_script:"datos" }}
+
+{{ etiquetas_solicitudes|json_script:"etiquetas_sol" }}
+{{ datos_solicitudes|json_script:"datos_sol" }}
+
+{{ etiquetas_hoy|json_script:"etiquetas_hoy" }}
+{{ datos_hoy|json_script:"datos_hoy" }}
+
+<script>
+  const mydata = JSON.parse(document.getElementById('datos').textContent);
+  const eti = JSON.parse(document.getElementById('etiquetas').textContent);
+
+  const datos_sol = JSON.parse(document.getElementById('datos_sol').textContent);
+  const eti_sol = JSON.parse(document.getElementById('etiquetas_sol').textContent);
+
+  const datos_hoy= JSON.parse(document.getElementById('datos_hoy').textContent);
+  const eti_hoy = JSON.parse(document.getElementById('etiquetas_hoy').textContent);
+
+  const data_presupuestos =
+  {
+    labels: eti,
+    datasets:
+    [
+      {
+        label: 'Presupuestos',
+        backgroundColor: 'rgb(255, 99, 132)',
+        borderColor: 'rgb(255, 99, 132)',
+        data: mydata,
+    }]
+  };
+
+  const config_presupuesto =
+  {
+    type: 'bar',
+    data: data_presupuestos,
+    options: {
+      responsive: true,
+    }
+  };
+
+  const data_solicitudes =
+  {
+    labels: eti_sol,
+    datasets:
+    [
+      {
+        label: 'Solicitudes',
+        backgroundColor: 'rgb(255, 221, 87)',
+        borderColor: 'rgb(255, 221, 87)',
+        data: datos_sol,
+    }],
+  };
+
+  const config_solicitud =
+  {
+    type: 'line',
+    data: data_solicitudes,
+    options: {
+        responsive: true,
+        scales:
+        {
+            x:
+            {
+                type: 'time',
+                time:
+                {
+                    unit: 'day',
+                    displayFormats: {day: 'dd MMM yyyy'}
+                },
+            }
+        },
+        plugins: {
+            legend:
+            {
+                display: true,
+                labels:
+                {
+                    font:
+                    {
+                        size: 14
+                    }
+                },
+                title: 'Tsting'
+            }
+        }
+    }
+  };
+
+  const data_hoy =
+  {
+    labels: eti_hoy,
+    datasets:
+    [
+      {
+        label: 'Solicitudes de hoy',
+        borderColor: 'rgb(255, 221, 87)',
+        data: datos_hoy,
+        backgroundColor:
+        [
+          'rgb(35, 209, 96)',
+          'rgb(255, 56, 96)',
+        ]
+    }],
+  };
+  const config_hoy =
+  {
+    type: 'doughnut',
+    data: data_hoy,
+    options: {
+      responsive: true,
+    }
+  };
+
+  var myChart = new Chart(document.getElementById('chart_sol'), config_solicitud);
+  var myChart2 = new Chart(document.getElementById('myChart'), config_presupuesto);
+  var myChart3 = new Chart(document.getElementById('chart_sol_hoy'), config_hoy);
+
+
+</script>
 {% endblock %}

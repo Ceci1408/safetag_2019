@@ -10,7 +10,11 @@
             <th>Descripción</th>
             <th>Fecha de carga</th>
             <th>Activo</th>
-            <th>Más detalles</th>
+            <th>Más información</th>
+            <th>Editar</th>
+            {% if perms.gestion_imprenta.inactivar_cliente and perms.gestion_imprenta.activar_cliente %}
+            <th>Activo</th>
+            {% endif %}
         </tr>
     </thead>
     <tbody>
@@ -24,10 +28,32 @@
             <td>
                 <span class="icon">
                      <a href="{% url 'detalle_proveedor' prov.pk %}">
-                         <i class="fas fa-edit"></i>
+                         <i class="fas fa-info"></i>
                      </a>
                 </span>
             </td>
+            <td>
+                <span class="icon">
+                    <a href="{% url 'editar_proveedor' prov.pk %}">
+                        <i class="fas fa-edit"></i>
+                    </a>
+                </span>
+            </td>
+            {% if perms.gestion_imprenta.inactivar_proveedor and perms.gestion_imprenta.activar_proveedor %}
+            <td>
+                <span class="icon">
+                    {% if prov.flg_activo %}
+                    <a href="{% url 'inactivar_proveedor' prov.pk %}">
+                        <i class="fas fa-toggle-on"></i>
+                    </a>
+                    {% else %}
+                    <a href="{% url 'activar_proveedor' prov.pk %}">
+                        <i class="fas fa-toggle-off"></i>
+                    </a>
+                    {% endif %}
+                </span>
+            </td>
+            {% endif %}
         </tr>
     {% empty %}
         <tr>

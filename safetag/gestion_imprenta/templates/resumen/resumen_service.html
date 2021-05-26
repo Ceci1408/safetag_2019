@@ -1,10 +1,12 @@
-<table class="'resumen">
+<div class="table-container">
+    <table class="table is-fullwidth">
     <tr>
         <td>Servicio Técnico</td>
-        <td>{{ service.servicio_tecnico}}</td>
+        <td>{{ st.servicio_tecnico}}</td>
     </tr>
     <tr>
         <td>Activo</td>
-        <td>{{ service.flg_activo }}</td>
+        <td>{{ st.flg_activo|yesno:"Activo,Inactivo" }}</td>
     </tr>
 </table>
+</div>
