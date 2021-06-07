@@ -1,10 +1,5 @@
 from django.contrib import admin
-from .models import Cliente, Domicilio, Contacto, \
-    Proveedor, Material, Trabajo, MedidaEstandar, Cantidad, TrabajoCantidades, Terminacion, ColorImpresion, \
-    MaquinaTerminacion, TerminacionesMaquinas, \
-    MaquinaPliego, MaquinaPliegoColores, ServicioTecnico, PagoRecibido, Envio, \
-    SolicitudPresupuesto, SolicitudPresupuestoTerminaciones, Presupuesto, Estado, \
-    OrdenTrabajo, OrdenTrabajoEstado, Personal
+from .models import *
 
 # Register your models here.
 admin.site.register(Cliente)
@@ -17,6 +12,8 @@ admin.site.register(MedidaEstandar)
 admin.site.register(Cantidad)
 admin.site.register(TrabajoCantidades)
 admin.site.register(Terminacion)
+admin.site.register(TipoTerminacion)
+admin.site.register(TrabajoTerminaciones)
 admin.site.register(ColorImpresion)
 admin.site.register(MaquinaTerminacion)
 admin.site.register(TerminacionesMaquinas)
@@ -28,7 +25,10 @@ admin.site.register(Envio)
 admin.site.register(SolicitudPresupuesto)
 admin.site.register(SolicitudPresupuestoTerminaciones)
 admin.site.register(Presupuesto)
+admin.site.register(PresupuestoEstado)
 admin.site.register(Estado)
+admin.site.register(Tarea)
+admin.site.register(TareaHistorial)
 admin.site.register(OrdenTrabajo)
 admin.site.register(OrdenTrabajoEstado)
-admin.site.register(Personal)
+admin.site.register(Comentario)

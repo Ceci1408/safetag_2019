@@ -3,62 +3,59 @@
     Inicio
 {% endblock %}
 
-
 {% block content %}
-<br>
-<section class="section">
-<div class="tile is-ancestor">
-  <div class="tile is-parent is-vertical is-5">
-        <article class="tile is-child notification is-danger">
-        <p class="title">Solicitudes</p>
-        <p class="subtitle">Sin presupuestos generados (+ 48hs)</p>
-        <div class="content">
-          Total: {{ solicitudes_sin_ver.total }}
-        </div>
-        <div class="content is-small">
-          <canvas id="chart_sol"  aria-label="Solicitudes sin revisión" role="img"></canvas>
-        </div>
-      </article>
-        <article class="tile is-child notification is-warning">
-          <p class="title">Presupuestos</p>
-          <p class="subtitle">Por estado</p>
-          <div class="content">
-            Total: {{ presupuestos.total }}
-          </div>
-          <div class="content is-small">
-            <canvas id="myChart"  aria-label="Presupuestos por estado" role="img"></canvas>
-          </div>
-        </article>
-  </div>
-  <div class="tile is-parent is-vertical">
-        <article class="tile is-child notification is-primary">
-          <p class="title">Solicitudes</p>
-          <p class="subtitle">Nuevas solicitudes</p>
-            <div class="content">
-                Solicitudes del día de hoy: {{ solicitudes|length }}
-                <div class="content is-small">
-                  <canvas id="chart_sol_hoy"  aria-label="Solicitudes por urgencia" role="img"></canvas>
-                </div>
+<section class="hero is-small">
+    <div class="hero-body">
+        <p class="title">Dashboard</p>
+        <div class="tile is-ancestor">
+            <div class="tile is-parent is-vertical">
+                <article class="tile is-child notification is-danger">
+                    <p class="title">Solicitudes</p>
+                    <p class="subtitle">Sin presupuestos generados (+ 48hs)</p>
+                    <div class="content">
+                        Total: {{ solicitudes_sin_ver.total }}
+                    </div>
+                    <div class="content is-small">
+                        <canvas id="chart_sol"  aria-label="Solicitudes sin revisión" role="img"></canvas>
+                    </div>
+                </article>
+                <article class="tile is-child notification is-warning">
+                    <p class="title">Presupuestos</p>
+                    <p class="subtitle">Por estado</p>
+                    <div class="content">
+                        Total: {{ presupuestos.total|default_if_none:"0" }}
+                    </div>
+                    <div class="content is-small">
+                        <canvas id="myChart"  aria-label="Presupuestos por estado" role="img"></canvas>
+                    </div>
+                </article>
             </div>
-        </article>
-        <article class="tile is-child">
-          <figure class="image is-4by3">
-            <img src="https://bulma.io/images/placeholders/640x480.png">
-          </figure>
-        </article>
-  </div>
-  <div class="tile is-parent">
-    <article class="tile is-child notification is-success">
-      <div class="content">
-        <p class="title">Tareas</p>
-        <p class="subtitle">Tareas que están siendo realizadas...</p>
-        <div class="content">
-          <!-- Content -->
+            <div class="tile is-parent is-vertical">
+                <article class="tile is-child notification is-success">
+                    <div class="content">
+                    <p class="title">Tareas</p>
+                    <p class="subtitle">Tareas que están siendo realizadas...</p>
+                    <div class="content">
+                            Total: {{ tareas.total|default_if_none:"0"}}
+                    </div>
+                    <div class="content is-small">
+                        <canvas id="tareas_chart"  aria-label="Presupuestos por estado" role="img"></canvas>
+                    </div>
+                    </div>
+                </article>
+                <article class="tile is-child notification is-primary">
+                  <p class="title">Solicitudes</p>
+                  <p class="subtitle">Nuevas solicitudes</p>
+                    <div class="content">
+                        Solicitudes del día de hoy: {{ solicitudes|length }}
+                        <div class="content is-small">
+                          <canvas id="chart_sol_hoy"  aria-label="Solicitudes por urgencia" role="img"></canvas>
+                        </div>
+                    </div>
+                </article>
+            </div>
         </div>
-      </div>
-    </article>
-  </div>
-</div>
+    </div>
 </section>
 
 {% endblock %}
@@ -75,6 +72,9 @@
 {{ etiquetas_hoy|json_script:"etiquetas_hoy" }}
 {{ datos_hoy|json_script:"datos_hoy" }}
 
+{{ etiquetas_tareas|json_script:"etiquetas_tareas" }}
+{{ etiquetas_tareas_datos|json_script:"datos_tareas" }}
+
 <script>
   const mydata = JSON.parse(document.getElementById('datos').textContent);
   const eti = JSON.parse(document.getElementById('etiquetas').textContent);
@@ -84,6 +84,9 @@
 
   const datos_hoy= JSON.parse(document.getElementById('datos_hoy').textContent);
   const eti_hoy = JSON.parse(document.getElementById('etiquetas_hoy').textContent);
+
+  const datos_tareas = JSON.parse(document.getElementById('datos_tareas').textContent);
+  const etiqueta_tareas = JSON.parse(document.getElementById('etiquetas_tareas').textContent);
 
   const data_presupuestos =
   {
@@ -180,9 +183,34 @@
     }
   };
 
+  const tareas =
+  {
+    labels: etiqueta_tareas,
+    datasets:
+    [
+      {
+        label: 'Cantidad de tareas en progreso',
+        borderColor: 'rgb(255, 56, 96)',
+        data: datos_tareas,
+        backgroundColor:
+        [
+          'rgb(255, 255, 255)',
+        ]
+    }],
+  };
+  const config_tareas =
+  {
+    type: 'bar',
+    data: tareas,
+    options: {
+      responsive: true,
+    }
+  };
+
   var myChart = new Chart(document.getElementById('chart_sol'), config_solicitud);
   var myChart2 = new Chart(document.getElementById('myChart'), config_presupuesto);
   var myChart3 = new Chart(document.getElementById('chart_sol_hoy'), config_hoy);
+  var myChart4 = new Chart(document.getElementById('tareas_chart'), config_tareas);
 
 
 </script>

@@ -1,13 +1,14 @@
 {% extends "base.html" %}
 {% load custom_tags %}
+{% load static %}
 
 {% block title %}
     {{ titulo }}
 {% endblock %}
 
 {% block content %}
-<section>
-        <ul class="steps has-content-centered">
+<section class="section">
+    <ul class="steps has-content-centered">
             {% if ordentrabajo.ultimo_estado.estado.tipo_estado == "Inicial"%}
                 <li class="steps-segment is-active">
             {% else %}
@@ -60,127 +61,223 @@
                             {% endif %}
                 </li>
             </ul>
-    </section>
-
+</section>
+<br>
 <div class="columns">
-    <div class="column is-7 ">
-        <div class="column">
-            <section class="section">
-                <h1 class="title">Historial de estados</h1>
-                <div class="table-container">
-                    <table class="table is-fullwidth">
-                        <thead>
-                            <tr>
-                                <th>Estado</th>
-                                <th>Fecha</th>
-                                <th>Usuario</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                        {% for oe in ordentrabajo.ordentrabajoestado_set.all %}
-                        <tr>
-                            <td>{{ oe.estado.estado_descripcion }}</td>
-                            <td>{{ oe.fecha_cambio_estado }}</td>
-                            <td>{{ oe.usuario }}</td>
-                        </tr>
-                        {% endfor %}
-                        </tbody>
-                    </table>
-                    {% if ordentrabajo.ultimo_estado.estado.tipo_estado != "Final" %}
-                    <div>
-                        <a class="button is-primary" href="{% url 'orden_trabajo_estado' ordentrabajo.pk %}">Cambiar estado</a>
-                    </div>
-                    {% endif %}
-                </div>
-            </section>
-        </div>
-        <div class="column">
-            <section class="section">
-            <h1 class="title">Tareas</h1>
-            <div class="table-container">
-                <table class="table is-fullwidth">
-                    <thead>
-                    <tr>
-                        <th>Tarea</th>
-                        <th>Estado</th>
-                        <th>Usuario creador</th>
-                        <th>Fecha creación</th>
-                        <th>Fecha estimada fin</th>
-                        <th>Fecha último cambio</th>
-                    </tr>
-                    </thead>
-                    <tbody>
-                    {% for tarea in ordentrabajo.tarea_set.all %}
-                    <tr>
-                        <td>
-                            {% if tarea.completa == True %}
-                                    <span style="text-decoration: line-through">{{ tarea.get_tarea_display }}</span>
-                            {% else %}
-                                {{ tarea.get_tarea_display }}
-                            {% endif %}
-                        </td>
-                         <td>
-                            {% if tarea.completa == True %}
-                                <i class="far fa-check-circle"></i>
-                                {% if ordentrabajo.ultimo_estado.estado.tipo_estado != "Final"  %}
-                                <span style="text-decoration: line-through">
-                                    <a href="{% url 'desmarcar_tarea' tarea.pk %}">Para hacer</a>
-                                </span>
-                                {% else %}
-                                <span style="text-decoration: line-through">
-                                    Para hacer
-                                </span>
-                                {% endif %}
-                            {% else %}
-                                <i class="far fa-circle"></i>
-                                {% if ordentrabajo.ultimo_estado.estado.tipo_estado != "Final"  %}
-                                    <a href="{% url 'completar_tarea' tarea.pk %}">Listo</a>
-                                {% else %}
-                                    Listo
-                                {% endif %}
-                            {% endif %}
-                        </td>
-                        <td>{{ tarea.usuario }}</td>
-                        <td>{{ tarea.fecha_creacion }}</td>
-                        <td>{{ tarea.fecha_estimada_fin }}</td>
-                        <td>{{ tarea.fecha_ultima_actualizacion }}</td>
-
-                        {% if ordentrabajo.ultimo_estado.estado.tipo_estado != "Final"  %}
-                        <td>
-                        <span class="icon">
-                             <a href="{% url 'editar_tarea' tarea.pk %}">
-                                 <i class="fas fa-edit"></i>
-                             </a>
-                        </span>
-                        </td>
-                        {% endif %}
-
-                        {% if ordentrabajo.ultimo_estado.estado.tipo_estado != "Final"  %}
-                        <td>
-                        <span class="icon">
-                             <a href="{% url 'eliminar_tarea' tarea.pk %}">
-                                 <i class="fas fa-trash-alt"></i>
-                             </a>
-                        </span>
-                        </td>
-                        {% endif %}
-                    </tr>
-                    {% endfor %}
-                    </tbody>
-                </table>
-            </div>
-            {% if ordentrabajo.ultimo_estado.estado.tipo_estado != "Final"  %}
-            <div>
-                <a class="button is-primary" href="{% url 'orden_trabajo_tarea' ordentrabajo.pk %}">Crear tarea</a>
-            </div>
-            {% endif %}
-        </section>
-        </div>
+    <div class="column">
+        <section class="section">
+    <h1 class="title is-3">Trabajo a realizar</h1>
+    <table class="table is-fullwidth">
+        <tr>
+            <td>Fecha de solicitud</td>
+            <td>{{ ordentrabajo.presupuesto.solicitud.solicitud_fecha }}</td>
+        </tr>
+        <tr>
+            <td>Trabajo</td>
+            <td>{{ ordentrabajo.presupuesto.solicitud.trabajo }}</td>
+        </tr>
+        <tr>
+            <td>Material</td>
+            <td>{{ ordentrabajo.presupuesto.solicitud.material }}</td>
+        </tr>
+        <tr>
+            <td>Medidas</td>
+            <td>{{ ordentrabajo.presupuesto.solicitud.medida_estandar }}</td>
+        </tr>
+        <tr>
+            <td>Orientación</td>
+            <td>{{ ordentrabajo.presupuesto.solicitud.solicitud_orientacion|capfirst }}</td>
+        </tr>
+        <tr>
+            <td>Cantidad</td>
+            <td>{{ ordentrabajo.presupuesto.solicitud.cantidad_estandar }}</td>
+        </tr>
+        <tr>
+            <td>Imprimir con máquina</td>
+            <td>{{ ordentrabajo.presupuesto.solicitud.maquina_pliego }}</td>
+        </tr>
+        <tr>
+            <td>Impresión</td>
+            <td>{{ ordentrabajo.presupuesto.solicitud.solicitud_doble_cara_impresion_flg|yesno:"Doble faz,Simple faz" }}</td>
+        </tr>
+         <tr>
+            <td>Color</td>
+            <td>{{ ordentrabajo.presupuesto.solicitud.color_impresion}}</td>
+        </tr>
+        <tr>
+            <td>Requiere diseño</td>
+            <td>{{ ordentrabajo.presupuesto.solicitud.solicitud_disenio_flg|yesno:"Con diseño,Sin diseño" }}</td>
+        </tr>
+        <tr>
+            <td>Comentarios</td>
+            <td>{{ ordentrabajo.presupuesto.solicitud.solicitud_comentarios }}</td>
+        </tr>
+    </table>
+</section>
     </div>
     <div class="column">
         <section class="section">
-        <h1 class="title">Comentarios</h1>
+            <h1 class="title is-3">Adjuntos</h1>
+                <div class="tile is-ancestor">
+                    <div class="tile is-parent">
+                        <article class="tile is-child box">
+                            <div class="content">
+                                <figure class="has-ratio">
+                                    <img src="{% get_static_prefix %}images/hi.jpg" onclick="">
+                                </figure>
+                            </div>
+                        </article>
+                        <article class="tile is-child box">
+                            <div class="content">
+                                <figure class="has-ratio">
+                                    <img src="{% get_static_prefix %}images/hi.jpg">
+                                </figure>
+                            </div>
+                        </article>
+                        <article class="tile is-child box">
+                           <div class="content">
+                                <figure class="has-ratio">
+                                    <img src="{% get_static_prefix %}images/hi.jpg">
+                                </figure>
+                            </div>
+                        </article>
+                    </div>
+                </div>
+                <br>
+        </section>
+        <section class="section">
+            {% if ordentrabajo.presupuesto.solicitud.solicitud_terminacion_flg %}
+            <h1 class="title is-3">Terminaciones</h1>
+            <table class="table is-fullwidth">
+                <thead>
+                    <tr>
+                        <th>Terminación</th>
+                        <th>Faz</th>
+                        <th>Máquina elegida</th>
+                        <th>Comentarios</th>
+                    </tr>
+                </thead>
+                <tbody>
+                {% for t in ordentrabajo.presupuesto.solicitud.solicitudpresupuestoterminaciones_set.all %}
+                    <tr>
+                        <td>{{ t.terminacion }}</td>
+                        <td>{{ t.doble_cara_flg|yesno:"Doble,Simple"}}</td>
+                        <td>{{ t.maquina_terminacion }}</td>
+                        <td>{{ t.comentarios }} </td>
+                    </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+            {% endif %}
+        </section>
+    </div>
+</div>
+<div class="content">
+    <section class="section">
+        <h1 class="title">Historial de estados</h1>
         <div class="table-container">
+            <table class="table is-fullwidth">
+                <thead>
+                    <tr>
+                        <th>Estado</th>
+                        <th>Fecha</th>
+                        <th>Usuario</th>
+                    </tr>
+                </thead>
+                <tbody>
+                {% for oe in ordentrabajo.ordentrabajoestado_set.all %}
+                <tr>
+                    <td>{{ oe.estado.estado_descripcion }}</td>
+                    <td>{{ oe.fecha_cambio_estado }}</td>
+                    <td>{{ oe.usuario }}</td>
+                </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+            {% if ordentrabajo.ultimo_estado.estado.tipo_estado != "Final" %}
+            <div>
+                <a class="button is-primary" href="{% url 'orden_trabajo_estado' ordentrabajo.pk %}">Cambiar estado</a>
+            </div>
+            {% endif %}
+        </div>
+    </section>
+
+    <section class="section">
+        <h1 class="title">Tareas</h1>
+        <div class="table-container">
+            <table class="table is-fullwidth">
+                <thead>
+                <tr>
+                    <th>Tarea</th>
+                    <th>Estado</th>
+                    <th>Usuario creador</th>
+                    <th>Fecha creación</th>
+                    <th>Fecha estimada fin</th>
+                    <th>Fecha último cambio</th>
+                    {% if ordentrabajo.ultimo_estado.estado.tipo_estado != "Final"  %}
+                        <th>Editar</th>
+                    {% endif %}
+                </tr>
+                </thead>
+                <tbody>
+                {% for tarea in ordentrabajo.tarea_set.all %}
+                <tr>
+                    <td>
+                        {% if tarea.completa == True %}
+                                <span style="text-decoration: line-through">{{ tarea.get_tarea_display }}</span>
+                        {% else %}
+                            {{ tarea.get_tarea_display }}
+                        {% endif %}
+                    </td>
+                     <td>
+                        {% if tarea.completa == True %}
+                            <i class="far fa-check-circle"></i>
+                            {% if ordentrabajo.ultimo_estado.estado.tipo_estado != "Final"  %}
+                            <span style="text-decoration: line-through">
+                                <a href="{% url 'desmarcar_tarea' tarea.pk %}">Para hacer</a>
+                            </span>
+                            {% else %}
+                            <span style="text-decoration: line-through">
+                                Para hacer
+                            </span>
+                            {% endif %}
+                        {% else %}
+                            <i class="far fa-circle"></i>
+                            {% if ordentrabajo.ultimo_estado.estado.tipo_estado != "Final"  %}
+                                <a href="{% url 'completar_tarea' tarea.pk %}">Listo</a>
+                            {% else %}
+                                Listo
+                            {% endif %}
+                        {% endif %}
+                    </td>
+                    <td>{{ tarea.usuario }}</td>
+                    <td>{{ tarea.fecha_creacion }}</td>
+                    <td>{{ tarea.fecha_estimada_fin }}</td>
+                    <td>{{ tarea.fecha_ultima_actualizacion }}</td>
+
+                    {% if ordentrabajo.ultimo_estado.estado.tipo_estado != "Final"  %}
+                    <td>
+                    <span class="icon">
+                         <a href="{% url 'editar_tarea' tarea.pk %}">
+                             <i class="fas fa-edit"></i>
+                         </a>
+                    </span>
+                    </td>
+                    {% endif %}
+                </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% if ordentrabajo.ultimo_estado.estado.tipo_estado != "Final"  %}
+        <div>
+            <a class="button is-primary" href="{% url 'orden_trabajo_tarea' ordentrabajo.pk %}">Crear tarea</a>
+        </div>
+        {% endif %}
+    </section>
+    <section class="section">
+            <h1 class="title">Comentarios</h1>
+            <div class="table-container">
             <table class="table is-fullwidth">
                 <thead>
                 <tr>
@@ -211,7 +308,7 @@
             </div>
             {% endif %}
         </div>
-    </section>
-    </div>
+        </section>
 </div>
+
 {% endblock %}

@@ -85,12 +85,12 @@
 
                 {% if perms.gestion_imprenta.view_solicitud %}
                 <div class="navbar-item has-dropdown is-hoverable">
-                <a class="navbar-link">Solicitudes de presupuesto</a>
-                <div class="navbar-dropdown">
-                <a class="navbar-item" href="{% url 'solicitudes' %}">Listado de solicitudes</a>
-                <a class="navbar-item" href="{% url 'solicitudes_express' %}">Solicitudes express</a>
-                <a class="navbar-item" href="{% url 'solicitudes_disenio' %}">Solicitudes con diseño requerido</a>
-                </div>
+                    <a class="navbar-link">Solicitudes de presupuesto</a>
+                    <div class="navbar-dropdown">
+                        <a class="navbar-item" href="{% url 'solicitudes' %}">Listado de solicitudes</a>
+                        <a class="navbar-item" href="{% url 'solicitudes_express' %}">Solicitudes express</a>
+                        <a class="navbar-item" href="{% url 'solicitudes_disenio' %}">Solicitudes con diseño requerido</a>
+                    </div>
                 </div>
                 {% endif %}
 
@@ -98,7 +98,13 @@
                 <a class="navbar-item" href="{% url 'presupuestos' %}">Presupuestos</a>
                 {% endif %}
                 {% if perms.gestion_imprenta.view_orden_trabajo %}
-                <a class="navbar-item" href="{% url 'ordenes_trabajo' %}">Órdenes de trabajo</a>
+                 <div class="navbar-item has-dropdown is-hoverable">
+                     <a class="navbar-link">Órdenes de trabajo</a>
+                     <div class="navbar-dropdown">
+                        <a class="navbar-item" href="{% url 'ordenes_trabajo_progreso' %}">Órdenes en progreso</a>
+                        <a class="navbar-item" href="{% url 'ordenes_trabajo_finalizadas' %}">Órdenes finalizadas</a>
+                    </div>
+                 </div>
                 {% endif %}
              </div>
 
@@ -114,7 +120,7 @@
             </div>
          </div>
     </nav>
-
+    <br>
     {% block content %}
         Test de bloque!!
     {% endblock %}

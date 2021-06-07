@@ -7,7 +7,8 @@
 
 {% block content %}
 <section class="section">
-    <h1 class="title">Prioridad: {{ solicitud.solicitud_express_flg|yesno:"Urgente,Normal" }}</h1>
+    <h1 class="title">Número de solicitud: {{ solicitud.pk }}</h1>
+    <h1 class="subtitle">Prioridad: {{ solicitud.solicitud_express_flg|yesno:"Urgente,Normal" }}</h1>
     <div class="table-container">
         <table class="table is-fullwidth">
         <tr>
@@ -135,32 +136,30 @@
 {% endif %}
 <section class="section">
     <h1 class="title">Adjuntos</h1>
-
     <div class="tile is-ancestor">
         <div class="tile is-parent">
-    <article class="tile is-child box">
-      <p class="title">Hello World</p>
-      <p class="subtitle">What is up?</p>
-        <div class="content">
-            <figure class="image is-4by3">
-        </figure>
+            <article class="tile is-child box">
+                <p class="title">Hello World</p>
+                <p class="subtitle">What is up?</p>
+                <div class="content">
+                    <figure class="image is-4by3"></figure>
+                </div>
+            </article>
         </div>
-    </article>
-  </div>
         <div class="tile is-parent">
-    <article class="tile is-child box">
-      <p class="title">Foo</p>
-      <p class="subtitle">Bar</p>
-    </article>
-  </div>
+            <article class="tile is-child box">
+                <p class="title">Foo</p>
+                <p class="subtitle">Bar</p>
+            </article>
+        </div>
         <div class="tile is-parent">
-    <article class="tile is-child box">
-      <p class="title">Third column</p>
-      <p class="subtitle">With some content</p>
-      <div class="content">
-        <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Proin ornare magna eros, eu pellentesque tortor vestibulum ut. Maecenas non massa sem. Etiam finibus odio quis feugiat facilisis.</p>
-      </div>
-    </article>
+        <article class="tile is-child box">
+            <p class="title">Third column</p>
+            <p class="subtitle">With some content</p>
+            <div class="content">
+                <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Proin ornare magna eros, eu pellentesque tortor vestibulum ut. Maecenas non massa sem. Etiam finibus odio quis feugiat facilisis.</p>
+            </div>
+        </article>
   </div>
     </div>
 </section>
@@ -176,7 +175,7 @@
             <th>Dato de contacto</th>
             <th>Conacto principal de la solicitud</th>
             <th>Editar</th>
-            <th>Eliminar</th>
+            <th>Activo/Inactivo</th>
         </tr>
         </thead>
         <tbody>
@@ -193,13 +192,21 @@
                     </a>
                 </span>
             </td>
+            {% if perms.gestion_imprenta.inactivar_solicitud_contacto and perms.gestion_imprenta.activar_solicitud_contacto %}
             <td>
                 <span class="icon">
-                    <a href="{% url 'eliminar_solicitud_contacto' contacto.pk %}">
-                        <i class="fas fa-trash-alt"></i>
+                    {% if contacto.flg_activo %}
+                    <a href="{% url 'inactivar_solicitud_contacto' contacto.pk %}">
+                        <i class="fas fa-toggle-on"></i>
                     </a>
+                    {% else %}
+                    <a href="{% url 'activar_solicitud_contacto' contacto.pk %}">
+                        <i class="fas fa-toggle-off"></i>
+                    </a>
+                    {% endif %}
                 </span>
             </td>
+            {% endif %}
         </tr>
         {% endfor %}
         </tbody>
@@ -248,10 +255,9 @@
 </section>
 <br>
 <section class="section">
-    <p class="title is-3">Resumen costos</p>
+    <h1 class="title">Resumen costos</h1>
     <div class="table-container">
     {% with maq_impresion=solicitud.maquina_pliego terminaciones=solicitud.solicitudpresupuestoterminaciones_set.all %}
-
         <div class="content is-medium">
             <ul>
             {% if maq_impresion is None %}
@@ -293,11 +299,12 @@
             <thead>
             <tr>
                 <th>Fecha creación</th>
-                <th>Presupuesto ID</th>
+                <th>Nro de Presupuesto</th>
                 <th>Porcentaje de ganancia</th>
                 <th>Precio al cliente ($)</th>
                 <th>Último estado</th>
                 <th>Fecha último estado</th>
+                <th>Más detalle</th>
 
             </tr>
             </thead>
@@ -308,7 +315,7 @@
                     {{ p.fecha_carga }}
                 </td>
                 <td>
-                    <a class="btn btn-primary" href="{% url 'detalle_presupuesto' p.pk %}">{{ p.pk }}</a>
+                    {{ p.pk }}</a>
                 </td>
                 <td>
                     {{ p.margen_ganancia }}
@@ -317,18 +324,30 @@
                     {{ p.precio_cliente }}
                 </td>
                 <td>
-                    {{ p.ultimo_estado.estado.estado_descripcion }}
+                    {{ p.ultimo_estado }}
                 </td>
                 <td>
-                    {{ p.ultimo_estado.fecha_cambio_estado|date }}
+                    {{ p.fecha_ultimo_estado|date }}
                 </td>
-             </tr>
+                <td>
+                    <a class="btn btn-primary" href="{% url 'detalle_presupuesto' p.pk %}">
+                        <span class="icon is-small">
+                            <i class="fas fa-info"></i>
+                        </span>
+                    </a>
+                </td>
+            </tr>
             {% endfor %}
             </tbody>
         </table>
         {% if not solicitud.presupuesto_set.all|check_presupuesto_sin_aceptar %}
             <div>
-                <a class="button is-primary" href="{% url 'solicitud_presupuesto' solicitud.pk %}">Agregar presupuesto</a>
+                <a class="button is-primary" href="{% url 'solicitud_presupuesto' solicitud.pk %}">
+                    <span class="icon is-small">
+                        <i class="fas fa-plus"></i>
+                    </span>
+                    <span>Agregar presupuesto</span>
+                </a>
             </div>
         {% endif %}
     {% endif %}
