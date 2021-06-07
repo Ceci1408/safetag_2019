@@ -6,92 +6,8 @@
 {% endblock %}
 
 {% block content %}
-<section class="section">
-    <h1 class="title">Número de presupuesto: {{ presupuesto.pk }}</h1>
-    <h1 class="subtitle">Estado: {{ presupuesto.ultimo_estado }}</h1>
+    {% include "resumen/resumen_presupuesto.html" %}
 
-    <div class="table-container">
-        <table class="table is-fullwidth">
-            <tr>
-                <td>Fecha de creación</td>
-                <td>{{ presupuesto.fecha_carga }}</td>
-            </tr>
-            <tr>
-                <td>Hojas utilizadas</td>
-                <td>{{ presupuesto.hojas_utilizadas }}</td>
-            </tr>
-            <tr>
-                <td>Costo de impresión (u$s)</td>
-                <td>{{ presupuesto.costo_impresion_dolar }}</td>
-            </tr>
-            <tr>
-                <td>Costo de materiales (u$s)</td>
-                <td>{{ presupuesto.costo_material_dolar }}</td>
-            </tr>
-            <tr>
-                <td>Costo de terminaciones (u$s)</td>
-                <td>{{ presupuesto.costo_terminaciones_dolar }}</td>
-            </tr>
-            <tr>
-                <td>Costo de diseño</td>
-                <td>{{ presupuesto.costo_disenio }}</td>
-            </tr>
-            <tr>
-                <td>Costo total (u$s)</td>
-                <td>{{ presupuesto.costo_total_dolar }}</td>
-            </tr>
-            <tr>
-                <td>Margen de ganancia (%)</td>
-                <td>{{ presupuesto.margen_ganancia }}</td>
-            </tr>
-            <tr>
-                <td>Precio al cliente</td>
-                <td>{{ presupuesto.precio_cliente }}</td>
-            </tr>
-            <tr>
-                <td>Solicitud correspondiente</td>
-                <td>
-                    <a href="{% url 'detalle_solicitud' presupuesto.solicitud.pk %}">{{ presupuesto.solicitud.pk }}</a>
-                </td>
-            </tr>
-        </table>
-    </div>
-    {% if perms.gestion_imprenta.add_ordentrabajo and presupuesto.ultimo_estado.estado_descripcion == "Aceptado por el cliente" and not presupuesto.ordentrabajo %}
-    <div>
-            <a class="button is-primary" href="{% url 'presupuesto_orden_trabajo' presupuesto.pk %}">
-                <span class="icon is-small">
-                    <i class="fas fa-plus"></i>
-                </span>
-                <span>Generar orden de trabajo</span>
-            </a>
-        </div>
-    {% endif %}
-</section>
-<br>
-<section class="section">
-    <h1 class="title">Contactos </h1>
-    <div class="table-container">
-        <table class="table is-fullwidth">
-            <thead>
-            <tr>
-                <th>Nombre y apellido</th>
-                <th>Tipo dato de contacto</th>
-                <th>Dato de contacto</th>
-                <th>Recibe las notificaciones</th>
-            </tr>
-            </thead>
-            {% for contacto in presupuesto.solicitud.solicitudpresupuestocontactos_set.all %}
-            <tr>
-                <td>{{ contacto.contacto.cliente.cliente_nombre}} {{ contacto.contacto.cliente.cliente_apellido }}</td>
-                <td>{{ contacto.contacto.get_tipo_dato_contacto_display }}</td>
-                <td>{{ contacto.contacto.dato_contacto_valor}}</td>
-                <td>{{ contacto.flg_notificacion|yesno:"Si,No" }}</td>
-                <td>
-            <tr>
-            {% endfor %}
-        </table>
-    </div>
-</section>
 <br>
 <section class="section">
     <h1 class="title">Historial de estados</h1>
@@ -114,14 +30,13 @@
             {% endfor %}
             </tbody>
         </table>
-        {% if presupuesto.ultimo_estado.tipo_estado != "Final" %}
+        {% if presupuesto.ultimo_estado.estado.tipo_estado != "Final" %}
         <div>
-            <a class="button is-primary" href="{% url 'presupuesto_estado' presupuesto.pk %}">
-                <span class="icon is-small">
-                    <i class="fas fa-arrow-right"></i>
-                </span>
-                <span>Cambiar estado</span>
-            </a>
+            <a class="button is-primary" href="{% url 'presupuesto_estado' presupuesto.pk %}">Cambiar estado</a>
+        </div>
+        {% elif not presupuesto.ordentrabajo %}
+        <div>
+            <a class="button is-primary" href="{% url 'presupuesto_orden_trabajo' presupuesto.pk %}">Crear orden de trabajo</a>
         </div>
         {% endif %}
     </div>

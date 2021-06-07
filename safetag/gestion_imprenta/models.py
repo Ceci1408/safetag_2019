@@ -668,12 +668,8 @@ class SolicitudPresupuestoContactos(models.Model):
     class Meta:
         db_table = '"solicitud_presupuesto_contacto"'
         constraints = [
-            models.UniqueConstraint(fields=['flg_notificacion', 'solicitud'], condition=models.Q(flg_notificacion=True),
+            models.UniqueConstraint(fields=['flg_notificacion'], condition=models.Q(flg_notificacion=True),
                                     name='contacto_principal')
-        ]
-        permissions = [
-            ('inactivar_solicitud_contacto', 'Inactivar contacto de solicitud'),
-            ('activar_solicitud_contacto', 'Activar contacto de solicitud'),
         ]
 
 
@@ -711,6 +707,10 @@ class Presupuesto(models.Model):
         db_table = '"presupuesto"'
         ordering = ['-fecha_carga']
 
+'''    def ultimo_estado(self):
+        ultimo_estado_presupuesto = self.presupuestoestado_set.all().order_by('-fecha_cambio_estado')[0]
+        return ultimo_estado_presupuesto
+'''
 
 class PresupuestoEstado(models.Model):
     presupuesto = models.ForeignKey(Presupuesto, on_delete=models.PROTECT)
@@ -756,6 +756,9 @@ class OrdenTrabajo(models.Model):
     orden_id = models.AutoField(primary_key=True)
     presupuesto = models.OneToOneField(Presupuesto, on_delete=models.PROTECT, blank=True, null=True)
     orden_fecha_creacion = models.DateTimeField(auto_now_add=True)
+    orden_impresion_realizada_flg = models.BooleanField(blank=True)
+    orden_terminacion_realizada_flg = models.BooleanField(blank=True)
+    orden_disenio_realizado_flg = models.BooleanField(blank=True)
     estados = models.ManyToManyField(Estado, through='OrdenTrabajoEstado', related_name='ot_historia_estados')
     ultimo_estado = models.ForeignKey('Estado', on_delete=models.PROTECT,
                                       limit_choices_to={'entidad_asociada': 'orden_trabajo'},
@@ -765,6 +768,10 @@ class OrdenTrabajo(models.Model):
     class Meta:
         db_table = '"orden_trabajo"'
         ordering = ['-orden_fecha_creacion']
+
+    def ultimo_estado(self):
+        ultimo_estado_ot = self.ordentrabajoestado_set.all().order_by('-fecha_cambio_estado')[0]
+        return ultimo_estado_ot
 
 
 class OrdenTrabajoEstado(models.Model):
@@ -788,7 +795,7 @@ class Tarea(models.Model):
     tarea = models.CharField(choices=tareas, max_length=25, blank=False)
     orden_trabajo = models.ForeignKey(OrdenTrabajo, on_delete=models.PROTECT)
     fecha_creacion = models.DateTimeField(auto_now_add=True)
-    fecha_estimada_fin = models.DateField(null=True)
+    fecha_estimada_fin = models.DateField()
     completa = models.BooleanField(default=False)
     fecha_ultima_actualizacion = models.DateTimeField(auto_now=True)
     usuario = models.ForeignKey(User, on_delete=models.PROTECT, null=True)
@@ -802,7 +809,7 @@ class TareaHistorial(models.Model):
     tarea = models.ForeignKey(Tarea, on_delete=models.PROTECT)
     usuario = models.ForeignKey(User, on_delete=models.PROTECT)
     campo_actualizado = models.CharField(max_length=50, blank=False)
-    valor_anterior = models.CharField(max_length=50, null=True)
+    valor_anterior = models.CharField(max_length=50)
     valor_actualizado = models.CharField(max_length=50)
     fecha_registro = models.DateTimeField(auto_now_add=True)
 

@@ -4,34 +4,31 @@ from .forms import *
 from django.contrib.auth.decorators import login_required, permission_required
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.views.generic import ListView, DetailView
+from django.contrib import messages
 from django.db.models import Count, Sum
-from datetime import timedelta
-from django.utils import timezone, datetime_safe
+from datetime import datetime, timedelta
+from django.utils import timezone
 from django.db.models.functions import TruncDate
 
 
 @login_required
 def index(request):
-    solicitudes_hoy = SolicitudPresupuesto.objects.filter(solicitud_fecha__gt=timezone.now().date() - timedelta(days=1)) \
-        .values('solicitud_express_flg') \
-        .annotate(q_solicitudes=Count('pk')) \
+    solicitudes_hoy = SolicitudPresupuesto.objects.filter(solicitud_fecha__gt=datetime.now().date()-timedelta(days=1))\
+        .values('solicitud_express_flg')\
+        .annotate(q_solicitudes=Count('pk'))\
         .order_by('solicitud_express_flg')
 
-    presupuestos_por_estado = Presupuesto.objects.order_by().values('ultimo_estado__estado_descripcion') \
+    presupuestos_por_estado= Presupuesto.objects.order_by().values('ultimo_estado__estado_descripcion')\
         .annotate(q_presupuestos=Count('pk'))
 
     solicitudes_mas_48 = SolicitudPresupuesto.objects.filter(
-        solicitud_fecha__lte=timezone.now().date() - timedelta(days=3), presupuesto__isnull=True) \
-        .annotate(date=TruncDate('solicitud_fecha')) \
-        .values('date') \
+        solicitud_fecha__lte=datetime.now().date() - timedelta(days=3),presupuesto__isnull=True) \
+        .annotate(date=TruncDate('solicitud_fecha'))\
+        .values('date')\
         .annotate(q_solicitudes=Count('pk')) \
         .order_by('date')
 
-    tareas = OrdenTrabajo.objects.filter(ultimo_estado__tipo_estado__in=['Inicial', 'Intermedio'])\
-        .values('ultimo_estado__estado_descripcion')\
-        .annotate(cant_tareas=Count('pk'))
-
-    etiquetas_presupuesto = list()
+    etiquetas_presupuesto= list()
     datos_presupuesto = list()
     for dict in list(presupuestos_por_estado):
         etiqueta, dato = dict.values()
@@ -47,36 +44,23 @@ def index(request):
         datos_solicitudes.append(dato)
 
     etiquetas_hoy = list()
-    datos_hoy = list()
+    datos_hoy =list()
 
     for dict in list(solicitudes_hoy):
         etiqueta, dato = dict.values()
         etiquetas_hoy.append('Express' if etiqueta else 'Normal')
         datos_hoy.append(dato)
 
-    etiquetas_tareas = list()
-    etiquetas_tareas_datos = list()
-
-    for dict in list(tareas):
-        etiqueta, dato = dict.values()
-        etiquetas_tareas.append(etiqueta)
-        etiquetas_tareas_datos.append(dato)
-
     return render(request, 'index.html', context={'solicitudes': solicitudes_hoy,
-                                                  'presupuestos': presupuestos_por_estado.aggregate(
-                                                      total=Sum('q_presupuestos')),
-                                                  'solicitudes_sin_ver': solicitudes_mas_48.aggregate(
-                                                      total=Sum('q_solicitudes')),
+                                                  'presupuestos': presupuestos_por_estado.aggregate(total=Sum('q_presupuestos')),
+                                                  'solicitudes_sin_ver': solicitudes_mas_48.aggregate(total=Sum('q_solicitudes')),
                                                   'etiquetas_presupuesto': etiquetas_presupuesto,
                                                   'datos_presupuesto': datos_presupuesto,
                                                   'etiquetas_solicitudes': etiquetas_solicitudes,
                                                   'datos_solicitudes': datos_solicitudes,
                                                   'etiquetas_hoy': etiquetas_hoy,
-                                                  'datos_hoy': datos_hoy,
-                                                  'tareas': tareas.aggregate(total=Sum('cant_tareas')),
-                                                  'etiquetas_tareas': etiquetas_tareas,
-                                                  'etiquetas_tareas_datos': etiquetas_tareas_datos
-                                                  })
+                                                  'datos_hoy': datos_hoy})
+
 
 
 """ Cliente """
@@ -89,7 +73,7 @@ def alta_cliente(request):
 
         if form_cliente.is_valid():
             cliente = form_cliente.save(commit=False)
-            cliente.cliente_origen = 'manual'
+            cliente.cliente_origen='manual'
             cliente.save()
             return redirect(to='clientes_activos')
     else:
@@ -953,12 +937,12 @@ def solicitud_presupuesto(request, id_solicitud):
 
             if presupuesto.costo_disenio is not None:
                 costo_total_dolar = costo_material + costo_impresion + costo_terminacion + (
-                        presupuesto.costo_disenio / presupuesto.cotizacion_dolar)
+                            presupuesto.costo_disenio / presupuesto.cotizacion_dolar)
 
-                costo_total_dolar = costo_total_dolar - (descuento * costo_total_dolar) / 100
+                costo_total_dolar = costo_total_dolar-(descuento * costo_total_dolar)/100
             else:
                 costo_total_dolar = costo_material + costo_impresion + costo_terminacion
-                costo_total_dolar = costo_total_dolar - (descuento * costo_total_dolar) / 100
+                costo_total_dolar = costo_total_dolar-(descuento * costo_total_dolar) / 100
                 presupuesto.costo_disenio = 0
 
             presupuesto.costo_total_dolar = costo_total_dolar
@@ -986,17 +970,18 @@ def solicitud_presupuesto(request, id_solicitud):
 
     return render(request, 'presupuesto_alta.html', context={'form': form,
                                                              'disenio_incluido': solicitud.solicitud_disenio_flg,
-                                                             'modelo': "Presupuesto"})
+                                                              'modelo': "Presupuesto"})
 
 
 @login_required
 @permission_required(perm=['gestion_imprenta.add_solicitudpresupuestocontactos'], raise_exception=True)
-def solicitud_contacto(request, id_solicitud):
+def solicitud_contacto(request,id_solicitud):
     solicitud = SolicitudPresupuesto.objects.get(pk=id_solicitud)
 
     if request.method == 'POST':
         form_cliente = ClienteForm(request.POST, prefix='cliente')
         form_contacto = DatoContactoForm(request.POST, prefix='contacto')
+        form_cliente.fields['cliente_origen'].choices = [('manual', 'Manual')]
         form_solicitud_contacto = SolicitudPresupuestoContactoForm(request.POST, prefix='sol_contacto')
 
         if form_cliente.is_valid() and form_contacto.is_valid() and form_solicitud_contacto.is_valid():
@@ -1017,13 +1002,14 @@ def solicitud_contacto(request, id_solicitud):
     else:
         form_cliente = ClienteForm(prefix='cliente')
         form_contacto = DatoContactoForm(prefix='contacto')
+        form_cliente.fields['cliente_origen'].choices = [('manual', 'Manual')]
         form_solicitud_contacto = SolicitudPresupuestoContactoForm(prefix='sol_contacto')
 
     return render(request, 'forms_juntos.html', context={'form_1': form_cliente,
                                                          'form_2': form_contacto,
                                                          'form_3': form_solicitud_contacto,
-                                                         'solicitud': solicitud,
-                                                         'url_action': 'solicitud_contacto',
+                                                         'solicitud':solicitud,
+                                                         'url_action':'solicitud_contacto',
                                                          'clave': solicitud.pk})
 
 
@@ -1053,26 +1039,19 @@ def solicitud_contacto_edicion(request, id_solicitud_contacto):
     return render(request, 'forms_juntos.html', context={'form_1': form_cliente,
                                                          'form_2': form_contacto,
                                                          'form_3': form_solicitud_contacto,
-                                                         'solicitud': solicitud_contacto.solicitud,
+                                                         'solicitud':solicitud_contacto.solicitud,
                                                          'url_action': 'editar_solicitud_contacto',
                                                          'clave': solicitud_contacto.pk})
 
 
 @login_required
-@permission_required(perm=['gestion_imprenta.inactivar_solicitud_contacto'], raise_exception=True)
-def inactivar_solicitud_contacto(request, id_contacto):
+@permission_required(perm=['gestion_imprenta.change_solicitudpresupuestocontactos'], raise_exception=True)
+def solcitud_contacto_eliminar(request, id_contacto):
     solicitud_contacto = SolicitudPresupuestoContactos.objects.get(pk=id_contacto)
-    solicitud_contacto.flg_activo = False
+    #solicitud = SolicitudPresupuesto.objects.get(pk=solicitud_contacto.solicitud.pk)
+    solicitud_contacto.flg_activo=False
     solicitud_contacto.save()
-    return redirect(to='detalle_solicitud', pk=solicitud_contacto.solicitud.pk)
-
-
-@login_required
-@permission_required(perm=['gestion_imprenta.activar_solicitud_contacto'], raise_exception=True)
-def activar_solicitud_contacto(request, id_contacto):
-    solicitud_contacto = SolicitudPresupuestoContactos.objects.get(pk=id_contacto)
-    solicitud_contacto.flg_activo = True
-    solicitud_contacto.save()
+    messages.success(request, ('Task has been Deleted!'))
     return redirect(to='detalle_solicitud', pk=solicitud_contacto.solicitud.pk)
 
 
@@ -1121,8 +1100,8 @@ def presupuesto_comentarios(request, id_presupuesto):
 @permission_required(perm=['gestion_imprenta.add_presupuestoestado'], raise_exception=True)
 def presupuesto_estado(request, id_presupuesto):
     presupuesto = Presupuesto.objects.get(pk=id_presupuesto)
-    # ultimo_estado = presupuesto.ultimo_estado().estado
-    estados_posibles = Estado.objects.filter(entidad_asociada='presupuesto', flg_activo=True,
+    #ultimo_estado = presupuesto.ultimo_estado().estado
+    estados_posibles = Estado.objects.filter(entidad_asociada='presupuesto',flg_activo=True,
                                              estado_secuencia__gt=presupuesto.ultimo_estado.estado_secuencia)
 
     if request.method == 'POST':
@@ -1169,45 +1148,32 @@ def presupuesto_orden_trabajo(request, id_presupuesto):
     if presupuesto.solicitud.solicitud_disenio_flg:
         tarea_disenio = Tarea(tarea='disenio',
                               orden_trabajo=orden_trabajo,
-                              fecha_creacion=datetime.now(),
-                              completa=False,
-                              usuario=request.user)
-
+                              fecha_creacion=datetime.now())
         tarea_disenio.save()
         tarea_historial = TareaHistorial(tarea=tarea_disenio,
                                          usuario=request.user,
-                                         campo_actualizado='fecha_creacion',
-                                         valor_actualizado=datetime.now(),
+                                         flg_realizado=False,
                                          fecha_registro=datetime.now())
         tarea_historial.save()
 
     if presupuesto.solicitud.solicitud_terminacion_flg:
         tarea_terminaciones = Tarea(tarea='terminaciones',
                                     orden_trabajo=orden_trabajo,
-                                    fecha_creacion=datetime.now(),
-                                    completa=False,
-                                    usuario=request.user
-                                    )
-        tarea_terminaciones.save()
-
+                                    fecha_creacion=datetime.now())
+        tarea_disenio.save()
         tarea_historial = TareaHistorial(tarea=tarea_terminaciones,
                                          usuario=request.user,
-                                         campo_actualizado='fecha_creacion',
-                                         valor_actualizado=datetime.now(),
+                                         flg_realizado=False,
                                          fecha_registro=datetime.now())
         tarea_historial.save()
 
     tarea_impresion = Tarea(tarea='impresion',
                             orden_trabajo=orden_trabajo,
-                            completa=False,
-                            usuario=request.user,
                             fecha_creacion=datetime.now())
-
     tarea_impresion.save()
     tarea_historial = TareaHistorial(tarea=tarea_impresion,
                                      usuario=request.user,
-                                     campo_actualizado='fecha_creacion',
-                                     valor_actualizado=datetime.now(),
+                                     flg_realizado=False,
                                      fecha_registro=datetime.now())
     tarea_historial.save()
 
@@ -1219,23 +1185,11 @@ def presupuesto_orden_trabajo(request, id_presupuesto):
                                               usuario=request.user)
     orden_trabajo_estado.save()
 
-    return redirect(to='ordenes_trabajo')
+    return redirect(to='index')
 
 
-class ListaOrdenesTrabajoEnProgreso(LoginRequiredMixin, ListView):
-    queryset = OrdenTrabajo.objects.filter(ultimo_estado__tipo_estado__in=['Inicial', 'Intermedio'])
-    template_name = "listas/ordenes_trabajo_lista.html"
-    context_object_name = 'lista'
-
-    def get_context_data(self, **kwargs):
-        # Call the base implementation first to get a context
-        context = super().get_context_data(**kwargs)
-        context['titulo'] = 'Órdenes de trabajo'
-        return context
-
-
-class ListaOrdenesTrabajoFinalizadas(LoginRequiredMixin, ListView):
-    queryset = OrdenTrabajo.objects.filter(ultimo_estado__tipo_estado__in=['Final'])
+class ListaOrdenesTrabajo(LoginRequiredMixin, ListView):
+    queryset = OrdenTrabajo.objects.all()
     template_name = "listas/ordenes_trabajo_lista.html"
     context_object_name = 'lista'
 
@@ -1254,6 +1208,7 @@ class DetalleOrdenTrabajo(LoginRequiredMixin, DetailView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['titulo'] = "Orden de trabajo - Nro: {}".format(context.get('ordentrabajo').pk)
+
         return context
 
 
@@ -1262,7 +1217,7 @@ class DetalleOrdenTrabajo(LoginRequiredMixin, DetailView):
 def orden_trabajo_estado(request, orden_id):
     orden_trabajo = OrdenTrabajo.objects.get(pk=orden_id)
     ultimo_estado = orden_trabajo.ultimo_estado().estado
-    estados_posibles = Estado.objects.filter(entidad_asociada='orden_trabajo', flg_activo=True,
+    estados_posibles = Estado.objects.filter(entidad_asociada='orden_trabajo',flg_activo=True,
                                              estado_secuencia__gt=ultimo_estado.estado_secuencia)
 
     if request.method == 'POST':
@@ -1351,9 +1306,19 @@ def desmarcar_tarea(request, tarea_id):
 
 
 @login_required
+@permission_required(perm=['gestion_imprenta.delete_tarea', 'gestion_imprenta.delete_tareahistorial'], raise_exception=True)
+def eliminar_tarea(request, tarea_id):
+    tarea = Tarea.objects.get(pk=tarea_id)
+    historial = TareaHistorial.objects.filter(tarea=tarea)
+    historial.delete()
+    tarea.delete()
+    return redirect(to='detalle_orden_trabajo', pk=tarea.orden_trabajo.pk)
+
+
+@login_required
 @permission_required(perm=['gestion_imprenta.change_tarea'], raise_exception=True)
 def editar_tarea(request, tarea_id):
-    tarea = Tarea.objects.get(pk=tarea_id)
+    tarea =  Tarea.objects.get(pk=tarea_id)
 
     if request.method == 'POST':
         form = TareaForm(request.POST, instance=tarea)
@@ -1375,3 +1340,4 @@ def editar_tarea(request, tarea_id):
                                                               'id': tarea.pk,
                                                               'nombre_vista': 'editar_tarea',
                                                               'form': form, 'modelo': 'Tarea'})
+

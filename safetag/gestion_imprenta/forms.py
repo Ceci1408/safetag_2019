@@ -375,7 +375,6 @@ class SolicitudPresupuestoTerminacionesForm(ModelForm):
         }
         localized_fields = '__all__'
 
-
 TerminacionesSolicitudInlineFormset = inlineformset_factory(
     parent_model=SolicitudPresupuesto,
     model=SolicitudPresupuestoTerminaciones,
@@ -390,8 +389,7 @@ class SolicitudPresupuestoContactoForm(ModelForm):
         model = SolicitudPresupuestoContactos
         exclude = ['solicitud', 'contacto','fecha_creacion']
         labels = {
-            'flg_notificacion':_('Este contacto recibirá las notificaciones'),
-            'flg_activo': _('Contacto activo para la solicitud'),
+            'flg_notificacion':_('Este contacto recibirá las notificaciones')
         }
 
 
@@ -455,6 +453,21 @@ class PresupuestoEstadoForm(ModelForm):
         localized_fields = '__all__'
 
 
+class OrdenTrabajoForm(ModelForm):
+    class Meta:
+        model = OrdenTrabajo
+        fields = [
+            'orden_impresion_realizada_flg',
+            'orden_terminacion_realizada_flg',
+            'orden_disenio_realizado_flg'
+        ]
+        labels={
+            'orden_impresion_realizada_flg': _('Impresión realizada'),
+            'orden_terminacion_realizada_flg': _('Terminación realizada'),
+            'orden_disenio_realizado_flg': _('Diseño realizado')
+        }
+
+
 class OrdenTrabajoEstadoForm(ModelForm):
     class Meta:
         model = OrdenTrabajoEstado
@@ -463,6 +476,10 @@ class OrdenTrabajoEstadoForm(ModelForm):
             'estado': _('Nuevo estado')
         }
         localized_fields = '__all__'
+
+
+class DateInput(forms.DateInput):
+    input_type = 'date'
 
 
 class TareaForm(ModelForm):
@@ -475,5 +492,5 @@ class TareaForm(ModelForm):
             'completa': _('Tarea completa')
         }
         widgets={
-            'fecha_estimada_fin': forms.SelectDateWidget()
+            'fecha_estimada_fin': DateInput()
         }
