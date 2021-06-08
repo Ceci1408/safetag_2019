@@ -37,23 +37,10 @@
             <td>{{ presupuesto.precio_cliente }}</td>
         </tr>
         <tr>
-            <td>Solicitud ID</td>
-            <td><a href="{% url 'detalle_solicitud' presupuesto.solicitud.pk %}">{{ presupuesto.solicitud.pk }}</a></td>
-        </tr>
-    </table>
-</div>
-<br>
-<h4 class="title">Contactos </h4>
-<div class="table-container">
-    <table class="table is-fullwidth">
-        {% for contacto in presupuesto.solicitud.solicitudpresupuestocontactos_set.all %}
-        <tr>
-            <td>{{ contacto.contacto.cliente.cliente_nombre}} {{ contacto.contacto.cliente.cliente_apellido }}</td>
-            <td>{{ contacto.contacto.get_tipo_dato_contacto_display }}</td>
-            <td>{{ contacto.contacto.dato_contacto_valor}}</td>
-            <td>{{ contacto.flg_notificacion|yesno:"Si,No" }}</td>
+            <td>Solicitud correspondiente</td>
             <td>
-        <tr>
-        {% endfor %}
+                <a href="{% url 'detalle_solicitud' presupuesto.solicitud.pk %}">{{ presupuesto.solicitud.pk }}</a>
+            </td>
+        </tr>
     </table>
 </div>

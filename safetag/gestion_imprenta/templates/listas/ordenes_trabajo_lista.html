@@ -1,15 +1,14 @@
 {% extends "listas/base_lista.html" %}
+{% load custom_tags %}
 
 {% block content %}
 <h1 class="title">{{ titulo }} </h1>
 <table class="table is-fullwidth">
     <thead>
         <tr>
-            <th>Presupuesto ID</th>
+            <th>Nro. de orden de trabajo</th>
             <th>Fecha creación</th>
-            <th>Impresión realizada</th>
-            <th>Terminaciones realizadas</th>
-            <th>Diseño realizado</th>
+            <th>Cant.tareas pendientes</th>
             <th>Último estado</th>
             <th>Fecha del último estado</th>
             <th>Más detalle</th>
@@ -18,19 +17,17 @@
     <tbody>
     {% for ot in lista %}
         <tr>
-            <td>
-                <a href="{% url 'detalle_presupuesto' ot.presupuesto.pk %}">{{ ot.presupuesto.pk }}</a>
-            </td>
-            <td>
-                {{ ot.orden_fecha_creacion }}
-            </td>
-            <td>{{ ot.orden_impresion_realizada_flg|yesno:"Sí,No" }}</td>
-            <td>{{ ot.orden_terminacion_realizada_flg|yesno:"Sí,No" }}</td>
-            <td>{{ ot.orden_disenio_realizado_flg|yesno:"Sí,No" }}</td>
+            <td>{{ ot.orden_id }}</td>
+            <td>{{ ot.orden_fecha_creacion }}</td>
+            <td>{{ ot.tarea_set.all|contar_tareas_pendientes }}</td>
             <td>{{ ot.ultimo_estado.estado.estado_descripcion }}</td>
             <td>{{ ot.ultimo_estado.fecha_cambio_estado }}</td>
             <td>
-                <a href="{% url 'detalle_orden_trabajo' ot.pk %}">Más detalle</a>
+                <a href="{% url 'detalle_orden_trabajo' ot.pk %}">
+                    <span>
+                        <i class="fas fa-info"></i>
+                    </span>
+                </a>
             </td>
         </tr>
     {% empty %}

@@ -79,7 +79,8 @@ urlpatterns = [
     path('solicitud/<int:id_solicitud>/impresion', views.solicitud_maquina_impresion, name='solicitud_impresion'),
     path('solicitud/<int:id_solicitud>/presupuesto', views.solicitud_presupuesto, name='solicitud_presupuesto'),
     path('solicitud/<int:id_solicitud>/contacto', views.solicitud_contacto, name='solicitud_contacto'),
-    path('solicitud/borrar_contacto/<int:id_contacto>', views.solcitud_contacto_eliminar, name='eliminar_solicitud_contacto'),
+    path('solicitud/inactivar_contacto/<int:id_contacto>', views.inactivar_solicitud_contacto, name='inactivar_solicitud_contacto'),
+    path('solicitud/activar_contacto/<int:id_contacto>', views.activar_solicitud_contacto, name='activar_solicitud_contacto'),
     path('solicitud/editar_contacto/<int:id_solicitud_contacto>', views.solicitud_contacto_edicion, name='editar_solicitud_contacto'),
 
     path('presupuestos', views.ListaPresupuestos.as_view(), name='presupuestos'),
@@ -89,7 +90,10 @@ urlpatterns = [
     path('presupuesto/<int:id_presupuesto>/orden_trabajo', views.presupuesto_orden_trabajo,
          name='presupuesto_orden_trabajo'),
 
-    path('ordenes_trabajo', views.ListaOrdenesTrabajo.as_view(), name='ordenes_trabajo'),
+    path('ordenes_trabajo_progreso', views.ListaOrdenesTrabajoEnProgreso.as_view(), name='ordenes_trabajo_progreso'),
+    path('ordenes_trabajo_finalizadas', views.ListaOrdenesTrabajoFinalizadas.as_view(),
+         name='ordenes_trabajo_finalizadas'),
+
     path('orden_trabajo/<slug:pk>/', views.DetalleOrdenTrabajo.as_view(), name='detalle_orden_trabajo'),
     path('orden_trabajo/<int:orden_id>/estado', views.orden_trabajo_estado, name='orden_trabajo_estado'),
     path('orden_trabajo/<int:orden_id>/comentarios', views.orden_trabajo_comentarios, name='orden_trabajo_comentarios'),
@@ -97,13 +101,11 @@ urlpatterns = [
 
     path('marcar_tarea/<int:tarea_id>/', views.marcar_tarea, name='completar_tarea'),
     path('desmarcar_tarea/<int:tarea_id>/', views.desmarcar_tarea, name='desmarcar_tarea'),
-    path('eliminar_tarea/<int:tarea_id>', views.eliminar_tarea, name='eliminar_tarea'),
     path('editar_tarea/<int:tarea_id>', views.editar_tarea, name='editar_tarea'),
 
     path('login/', auth_views.LoginView.as_view(template_name='cuentas/usuario_login.html',
                                                 redirect_field_name='next',
                                                 extra_context={'url': 'index'}), name='login'),
-    path('logout/', auth_views.LogoutView.as_view(template_name='cuentas/usuario_logout.html'), name='logout'),
-    path('password_reset/', auth_views.PasswordChangeView.as_view(template_name='cuentas/usuario_reset_pass.html'),
-         name='password_reset')
+    path('logout/', auth_views.LogoutView.as_view(next_page='login'), name='logout'),
+    path('password_reset', auth_views.PasswordChangeView.as_view(), name='password_reset')
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

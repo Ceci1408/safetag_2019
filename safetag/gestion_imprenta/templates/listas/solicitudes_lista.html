@@ -5,7 +5,7 @@
     <table class="table is-fullwidth">
         <thead>
             <tr>
-                <th>ID</th>
+                <th>Nro de solicitud</th>
                 <th>Fecha </th>
                 <th>Trabajo</th>
                 <th>Express</th>
@@ -25,7 +25,13 @@
                 <td>{{ s.solicitud_disenio_flg|yesno:"Requiere diseño,Sin diseño"}}</td>
                 <td>{{ s.solicitudpresupuestoterminaciones_set.all|length }}</td>
                 <td>{{ s.presupuesto_set.all|length }}</td>
-                <td><a href="{% url 'detalle_solicitud'  s.pk %}">Más detalle</a></td>
+                <td>
+                    <a href="{% url 'detalle_solicitud'  s.pk %}">
+                        <span>
+                            <i class="fas fa-info"></i>
+                        </span>
+                    </a>
+                </td>
             </tr>
             {% empty %}
                 <tr>

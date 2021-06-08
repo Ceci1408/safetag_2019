@@ -5,31 +5,35 @@
 <table class="table is-fullwidth">
     <thead>
         <tr>
-            <th>Presupuesto ID</th>
-            <th>Solicitud ID</th>
+            <th>Nro de presupuesto</th>
+            <th>Fecha de creación</th>
             <th>Costo total (u$s)</th>
             <th>Cotización dolar</th>
-            <th>Margen ganancia</th>
+            <th>Margen ganancia (%)</th>
             <th>Precio al cliente</th>
             <th>Último estado</th>
             <th>Fecha del último estado</th>
+            <th>Más detalle</th>
         </tr>
     </thead>
     <tbody>
     {% for p in lista %}
         <tr>
-            <td>
-                <a href="{% url 'detalle_presupuesto' p.pk %}">{{ p.pk }}</a>
-            </td>
-            <td>
-                <a href="{% url 'detalle_solicitud' p.solicitud.pk %}">{{ p.solicitud.pk }}</a>
-            </td>
+            <td>{{ p.pk }}</td>
+            <td>{{ p.fecha_carga|date }}</td>
             <td>{{ p.costo_total_dolar }}</td>
             <td>{{ p.cotizacion_dolar }}</td>
             <td>{{ p.margen_ganancia }}</td>
             <td>{{ p.precio_cliente }}</td>
             <td>{{ p.ultimo_estado }}</td>
             <td>{{ p.fecha_ultimo_estado }}</td>
+            <td>
+                <a href="{% url 'detalle_presupuesto' p.pk %}">
+                    <span>
+                        <i class="fas fa-info"></i>
+                    </span>
+                </a>
+            </td>
         </tr>
     {% empty %}
         <tr>
